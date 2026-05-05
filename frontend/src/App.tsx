@@ -19,6 +19,11 @@ import {
   Upload,
 } from "lucide-react";
 
+/** Minimal shape of an Axios error response used for error messages. */
+type ApiError = { response?: { data?: { detail?: string } } };
+function apiErrMsg(err: unknown, fallback: string): string {
+  return (err as ApiError)?.response?.data?.detail ?? fallback;
+}
 type TabKey = "chat" | "history" | "documents" | "admin";
 
 const featureCards = [
@@ -74,8 +79,9 @@ function App() {
     const oauthError = params.get("error");
 
     if (oauthError) {
-      setError(oauthError);
       window.history.replaceState({}, "", window.location.pathname);
+      // Schedule state update outside the effect body to avoid cascading renders
+      setTimeout(() => setError(oauthError), 0);
       return;
     }
 
@@ -98,8 +104,8 @@ function App() {
       localStorage.setItem("eka_refresh_token", res.data.refresh_token as string);
       setAccessToken(token);
       setError("");
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Google sign-in failed");
+    } catch (err: unknown) {
+      setError(apiErrMsg(err, "Google sign-in failed"));
     }
   }
 
@@ -124,8 +130,8 @@ function App() {
       localStorage.setItem("eka_access_token", token);
       localStorage.setItem("eka_refresh_token", res.data.refresh_token as string);
       setAccessToken(token);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Login failed");
+    } catch (err: unknown) {
+      setError(apiErrMsg(err, "Login failed"));
     } finally {
       setLoading(false);
     }
@@ -137,8 +143,8 @@ function App() {
     try {
       const res = await api.get<{ auth_url: string }>("/auth/google/login");
       window.location.href = res.data.auth_url;
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Google sign-in is not configured");
+    } catch (err: unknown) {
+      setError(apiErrMsg(err, "Google sign-in is not configured"));
       setLoading(false);
     }
   }
@@ -167,8 +173,8 @@ function App() {
       setAnswer(res.data);
       setQuestion("");
       await loadHistory();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Query failed");
+    } catch (err: unknown) {
+      setError(apiErrMsg(err, "Query failed"));
     } finally {
       setLoading(false);
     }

@@ -35,8 +35,6 @@ ENG_DOC = SAMPLE_DIR / "engineering_guidelines.txt"
 
 def test_document_processing():
     """Test 1: Parse and chunk documents."""
-    import io, sys
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     print("\n" + "=" * 60)
     print("TEST 1: Document Processing (Parse + Chunk)")
     print("=" * 60)

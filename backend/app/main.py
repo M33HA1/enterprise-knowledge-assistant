@@ -28,6 +28,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def validate_config():
+    """Warn at startup if placeholder credentials are detected."""
+    _PLACEHOLDER_SECRET = "change-this-in-production-use-openssl-rand-hex-32"
+    _PLACEHOLDER_OAUTH = "your-google-client-secret"
+
+    if settings.SECRET_KEY == _PLACEHOLDER_SECRET:
+        logger.warning(
+            "WARNING: SECRET_KEY is set to the default placeholder value. "
+            "JWT tokens are insecure. Generate a real key with: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
+    if not settings.GOOGLE_CLIENT_SECRET or settings.GOOGLE_CLIENT_SECRET == _PLACEHOLDER_OAUTH:
+        logger.warning(
+            "WARNING: GOOGLE_CLIENT_SECRET is not configured or is set to a placeholder value. "
+            "Google OAuth will not function until a real secret is provided."
+        )
+
+
 async def seed_default_data():
     """Create default departments and super_admin on first run."""
     from app.database import async_session_factory
@@ -90,6 +109,7 @@ async def lifespan(app: FastAPI):
     """App lifecycle: startup and shutdown handlers."""
     # Startup
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    validate_config()
     await init_db()
     await seed_default_data()
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Anthropic Claude
     ANTHROPIC_API_KEY: Optional[str] = None
-    CLAUDE_MODEL: str = "claude-sonnet-4-20250514"
+    CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"
 
     # Google Gemini (free tier friendly)
     GEMINI_API_KEY: Optional[str] = None
