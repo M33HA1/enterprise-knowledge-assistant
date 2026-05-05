@@ -94,6 +94,7 @@ function App() {
   useEffect(() => {
     if (!accessToken) return;
     void bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   async function exchangeOAuthCode(oauthCode: string) {
@@ -226,8 +227,8 @@ function App() {
       setUploadTitle("");
       setUploadDeptId("");
       await loadDocuments();
-    } catch (err: any) {
-      setUploadError(err?.response?.data?.detail || "Upload failed");
+    } catch (err: unknown) {
+      setUploadError(apiErrMsg(err, "Upload failed"));
     } finally {
       setUploading(false);
     }

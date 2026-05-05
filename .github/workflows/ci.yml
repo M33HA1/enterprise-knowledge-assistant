@@ -44,6 +44,9 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio
 
+      - name: Create frontend .env for tests
+        run: echo "VITE_API_BASE_URL=http://localhost:8000/api" > frontend/.env
+
       - name: Run tests
         working-directory: backend
         run: python -m pytest tests/ -v --tb=short
