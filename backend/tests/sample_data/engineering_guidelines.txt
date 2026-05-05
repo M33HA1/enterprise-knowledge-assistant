@@ -1,0 +1,79 @@
+ACME CORPORATION - ENGINEERING DEPARTMENT GUIDELINES
+Version 2.1 | Effective Date: March 1, 2025
+Department: Engineering
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 1: DEVELOPMENT STANDARDS
+
+1.1 Code Review Policy
+- All code changes must be reviewed by at least one peer before merging.
+- Critical systems (payment processing, auth) require TWO reviewers.
+- Reviews must be completed within 24 business hours.
+- Auto-merge is prohibited on main and production branches.
+
+1.2 Version Control
+- All projects use Git with the following branch strategy:
+  - main: production-ready code
+  - develop: integration branch
+  - feature/*: individual feature branches
+  - hotfix/*: emergency production fixes
+- Commit messages must follow Conventional Commits format.
+- Force-pushing to main or develop is strictly prohibited.
+
+1.3 Testing Requirements
+- Minimum 80% code coverage for all new features.
+- Unit tests required for all business logic.
+- Integration tests required for API endpoints.
+- E2E tests required for critical user flows.
+- All tests must pass in CI before merge.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 2: DEPLOYMENT PROCEDURES
+
+2.1 Release Cycle
+- Sprint duration: 2 weeks
+- Release window: Tuesdays 10:00 AM – 2:00 PM EST
+- No deployments on Fridays or before holidays (freeze periods)
+- Emergency hotfixes may bypass the release window with VP approval
+
+2.2 Deployment Checklist
+Before any production deployment:
+1. All tests passing in staging environment
+2. Performance benchmarks meet SLA requirements
+3. Database migration scripts reviewed and tested
+4. Rollback plan documented and tested
+5. On-call engineer assigned for post-deployment monitoring
+
+2.3 Incident Response
+- Severity levels:
+  - P0 (Critical): Service down, data loss — response within 15 minutes
+  - P1 (High): Major feature broken — response within 1 hour
+  - P2 (Medium): Minor feature issue — response within 4 hours
+  - P3 (Low): Cosmetic/minor — addressed in next sprint
+- Post-incident review required for all P0 and P1 incidents within 48 hours.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 3: ON-CALL POLICY
+
+3.1 On-Call Rotation
+- Engineering teams maintain a weekly on-call rotation.
+- On-call engineers must:
+  - Respond to pages within 15 minutes during business hours
+  - Respond to pages within 30 minutes outside business hours
+  - Have laptop and reliable internet access at all times during rotation
+- On-call compensation: $500/week base + $100 per incident responded to
+
+3.2 Escalation Path
+1. On-call engineer
+2. Team lead
+3. Engineering manager
+4. VP of Engineering
+5. CTO (for P0 incidents only)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+END OF ENGINEERING GUIDELINES
+Contact: engineering-ops@acme.com

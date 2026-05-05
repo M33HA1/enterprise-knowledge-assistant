@@ -1,0 +1,146 @@
+ACME CORPORATION - EMPLOYEE HANDBOOK
+Version 3.2 | Effective Date: January 1, 2025
+Department: Human Resources
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 1: PAID TIME OFF (PTO) POLICY
+
+1.1 Annual PTO Allocation
+All full-time employees receive the following PTO allocation based on tenure:
+- 0–2 years of service: 15 days per year
+- 3–5 years of service: 20 days per year
+- 6–10 years of service: 25 days per year
+- 10+ years of service: 30 days per year
+
+PTO accrues monthly at a rate of 1/12th of the annual allocation.
+Unused PTO may be carried over to the next year, up to a maximum of 5 days.
+
+1.2 PTO Request Process
+- Requests must be submitted at least 5 business days in advance via the HR portal.
+- Requests of 5+ consecutive days require manager AND HR approval.
+- PTO during blackout periods (Q4 close: Dec 15–31) requires VP-level approval.
+
+1.3 Sick Leave
+- Employees receive 10 sick days per year, separate from PTO.
+- Sick leave of 3+ consecutive days requires a doctor's note.
+- Unused sick leave does NOT carry over.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 2: REMOTE WORK POLICY
+
+2.1 Eligibility
+All employees who have completed their 90-day probationary period are eligible
+for remote work, subject to manager approval and role requirements.
+
+2.2 Remote Work Schedule
+- Hybrid roles: minimum 3 days in-office per week (Tuesday, Wednesday, Thursday).
+- Fully remote roles: must be approved by department VP.
+- All employees must be available during core hours: 10:00 AM – 4:00 PM EST.
+
+2.3 Home Office Requirements
+- Employees must maintain a dedicated workspace with:
+  - Reliable high-speed internet (minimum 50 Mbps)
+  - Company-approved security software installed
+  - Webcam and microphone for video meetings
+- The company provides a one-time $500 home office stipend for new remote workers.
+
+2.4 Remote Work from Different States/Countries
+- Working from a different state for more than 30 days requires HR notification
+  for tax compliance purposes.
+- International remote work requires prior approval from Legal and HR.
+- Maximum international remote work period: 90 days per calendar year.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 3: EXPENSE REIMBURSEMENT POLICY
+
+3.1 Eligible Expenses
+The following expenses are reimbursable with proper documentation:
+- Business travel (flights, hotels, ground transportation)
+- Client entertainment (pre-approved, max $150 per person)
+- Professional development (conferences, courses — max $2,000/year)
+- Office supplies for remote workers (max $200/quarter)
+
+3.2 Reimbursement Process
+1. Submit expense report within 30 days of the expense.
+2. Attach original receipts or digital copies.
+3. Manager approval required for all expenses.
+4. Finance processes reimbursements bi-weekly on the 1st and 15th.
+
+3.3 Travel Policy
+- Flights: book economy class for domestic; business class for flights over 6 hours.
+- Hotels: maximum nightly rate of $200 domestic, $300 international.
+- Meals: per diem of $75/day domestic, $100/day international.
+- Rental cars: mid-size or below unless approved by manager.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 4: CODE OF CONDUCT
+
+4.1 Professional Behavior
+All employees are expected to:
+- Treat colleagues with respect and dignity
+- Maintain confidentiality of company information
+- Report conflicts of interest to their manager or HR
+- Follow all applicable laws and regulations
+
+4.2 Anti-Harassment Policy
+ACME Corporation maintains a zero-tolerance policy for harassment of any kind.
+This includes but is not limited to:
+- Sexual harassment
+- Racial or ethnic discrimination
+- Bullying or intimidation
+- Retaliation against employees who report violations
+
+Reports can be made to HR directly or via the anonymous Ethics Hotline: 1-800-555-ETHICS.
+All reports are investigated within 5 business days.
+
+4.3 Disciplinary Process
+Violations of company policy follow a progressive discipline process:
+1. Verbal warning (documented)
+2. Written warning
+3. Performance improvement plan (30–60 days)
+4. Suspension without pay
+5. Termination
+
+Severe violations (theft, violence, fraud) may result in immediate termination.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION 5: INFORMATION SECURITY POLICY
+Department: IT
+
+5.1 Password Requirements
+- Minimum 12 characters
+- Must include: uppercase, lowercase, numbers, special characters
+- Passwords must be changed every 90 days
+- No reuse of the last 10 passwords
+- Multi-factor authentication (MFA) is mandatory for all systems
+
+5.2 Data Classification
+- PUBLIC: Marketing materials, press releases
+- INTERNAL: Company policies, organizational charts
+- CONFIDENTIAL: Financial data, customer information, employee records
+- RESTRICTED: Trade secrets, M&A data, board communications
+
+5.3 Acceptable Use of Technology
+- Company devices are for business use primarily
+- Limited personal use is permitted during non-work hours
+- Prohibited: installing unauthorized software, accessing inappropriate content,
+  using company resources for personal business ventures
+- All company communications may be monitored in accordance with applicable law
+
+5.4 Data Breach Response
+In the event of a suspected data breach:
+1. Immediately notify IT Security at security@acme.com
+2. Do NOT attempt to investigate or contain the breach yourself
+3. Preserve all evidence — do not delete files or logs
+4. IT Security will initiate the Incident Response Plan within 1 hour
+5. Affected parties will be notified within 72 hours per regulatory requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+END OF EMPLOYEE HANDBOOK
+For questions, contact HR at hr@acme.com or ext. 5500.
