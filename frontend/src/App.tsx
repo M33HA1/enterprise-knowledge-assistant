@@ -9,44 +9,820 @@ import type {
   User,
 } from "./types";
 import {
-  CheckCircle2,
-  ShieldCheck,
-  Layers,
-  Search,
+  MessageSquare,
+  Clock,
   FileText,
-  Users,
-  Sparkles,
+  ShieldCheck,
   Upload,
+  LogOut,
+  ChevronRight,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Users,
+  Layers,
 } from "lucide-react";
 
-/** Minimal shape of an Axios error response used for error messages. */
 type ApiError = { response?: { data?: { detail?: string } } };
 function apiErrMsg(err: unknown, fallback: string): string {
   return (err as ApiError)?.response?.data?.detail ?? fallback;
 }
 type TabKey = "chat" | "history" | "documents" | "admin";
 
-const featureCards = [
-  {
-    title: "Trusted internal answers",
-    description: "Deliver accurate, context-aware responses from your own policies and handbooks.",
-    icon: Search,
-  },
-  {
-    title: "Department-aware security",
-    description: "Ensure employees see only the documents relevant to their division or role.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Fast document ingestion",
-    description: "Upload and index manuals, handbooks, and SOPs instantly.",
-    icon: Layers,
-  },
+function LoadingDots() {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+    </span>
+  );
+}
+
+function ConfidenceBar({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const color =
+    pct >= 75 ? "bg-emerald-500" : pct >= 45 ? "bg-amber-500" : "bg-red-500";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-slate-400">Confidence</span>
+        <span className="font-semibold text-slate-200">{pct}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+        <div
+          className={"h-full rounded-full transition-all duration-500 " + color}
+          style={{ width: pct + "%" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FileTypeIcon({ type }: { type: string }) {
+  const t = type.toLowerCase();
+  if (t === "pdf")
+    return (
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/15 text-xs font-bold text-red-400">
+        PDF
+      </span>
+    );
+  if (t === "docx" || t === "doc")
+    return (
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15 text-xs font-bold text-blue-400">
+        DOC
+      </span>
+    );
+  return (
+    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-500/15 text-xs font-bold text-slate-400">
+      TXT
+    </span>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const s = status.toLowerCase();
+  const color =
+    s === "processed" || s === "active"
+      ? "bg-emerald-500"
+      : s === "processing"
+        ? "bg-amber-500"
+        : "bg-slate-500";
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-slate-400">
+      <span className={"h-1.5 w-1.5 rounded-full " + color} />
+      {status}
+    </span>
+  );
+}
+
+// ---- LoginPage ----
+interface LoginPageProps {
+  email: string;
+  setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  error: string;
+  loading: boolean;
+  onLogin: (e: React.FormEvent) => void;
+  onGoogle: () => void;
+}
+
+function LoginPage({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  error,
+  loading,
+  onLogin,
+  onGoogle,
+}: LoginPageProps) {
+  return (
+    <div className="flex min-h-screen bg-[#0a0a0f]">
+      {/* Left panel */}
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 lg:flex">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl" />
+          <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-violet-600/15 blur-3xl" />
+          <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-2xl" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-slate-200">EKA</span>
+          </div>
+        </div>
+        <div className="relative z-10 space-y-6">
+          <div>
+            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-slate-100">
+              Enterprise Knowledge<br />
+              <span className="text-indigo-400">at your fingertips.</span>
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-slate-400">
+              Secure, AI-powered search across your company's internal documents, policies, and handbooks.
+            </p>
+          </div>
+          <ul className="space-y-4">
+            {[
+              { icon: ShieldCheck, title: "Department-aware security", desc: "RBAC enforcement keeps sensitive docs in the right hands." },
+              { icon: MessageSquare, title: "Cited, confident answers", desc: "Every response includes sources, confidence, and escalation flags." },
+              { icon: Layers, title: "Instant document ingestion", desc: "Upload PDFs, DOCX, and TXT files -- searchable in seconds." },
+            ].map(({ icon: Icon, title, desc }) => (
+              <li key={title} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-indigo-400">
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-slate-200">{title}</p>
+                  <p className="text-xs leading-relaxed text-slate-500">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="relative z-10">
+          <p className="text-xs text-slate-600">&copy; {new Date().getFullYear()} Enterprise Knowledge Assistant</p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="flex w-full items-center justify-center p-8 lg:w-1/2">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-slate-200">EKA</span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-slate-100">Welcome back</h2>
+            <p className="mt-1 text-sm text-slate-500">Sign in to your knowledge hub</p>
+          </div>
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+          <form onSubmit={onLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wider text-slate-500">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-[#1e1e2e] bg-[#111118] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition-all duration-150 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wider text-slate-500">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-[#1e1e2e] bg-[#111118] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition-all duration-150 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+                placeholder="........"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? <LoadingDots /> : "Sign in"}
+            </button>
+          </form>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#1e1e2e]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#0a0a0f] px-3 text-xs text-slate-600">or</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onGoogle}
+            className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-[#1e1e2e] bg-[#111118] px-4 py-2.5 text-sm font-medium text-slate-300 transition-all duration-150 hover:border-slate-600 hover:bg-[#16161f] disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+            Continue with Google
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Sidebar ----
+interface SidebarProps {
+  activeTab: TabKey;
+  setActiveTab: (t: TabKey) => void;
+  isAdmin: boolean;
+  user: User;
+  onLogout: () => void;
+}
+
+const NAV_ITEMS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  { key: "chat", label: "Chat", icon: MessageSquare },
+  { key: "history", label: "History", icon: Clock },
+  { key: "documents", label: "Documents", icon: FileText },
 ];
 
+function Sidebar({ activeTab, setActiveTab, isAdmin, user, onLogout }: SidebarProps) {
+  const items = isAdmin
+    ? [...NAV_ITEMS, { key: "admin" as TabKey, label: "Admin", icon: ShieldCheck }]
+    : NAV_ITEMS;
+
+  const initials = user.full_name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <aside className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r border-[#1e1e2e] bg-[#111118]">
+      <div className="flex h-14 items-center gap-2.5 border-b border-[#1e1e2e] px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500">
+          <Sparkles className="h-3.5 w-3.5 text-white" />
+        </div>
+        <span className="text-sm font-semibold tracking-wide text-slate-200">EKA</span>
+      </div>
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <p className="mb-2 px-2 text-xs font-medium uppercase tracking-wider text-slate-600">Navigation</p>
+        {items.map(({ key, label, icon: Icon }) => {
+          const active = activeTab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={
+                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150 " +
+                (active
+                  ? "border-l-2 border-indigo-500 bg-indigo-500/10 pl-[10px] font-medium text-indigo-400"
+                  : "border-l-2 border-transparent text-slate-400 hover:bg-[#1a1a24] hover:text-slate-200")
+              }
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+              {active && <ChevronRight className="ml-auto h-3.5 w-3.5 text-indigo-500" />}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="border-t border-[#1e1e2e] p-3">
+        <div className="flex items-center gap-3 rounded-md px-2 py-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-semibold text-indigo-400">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-slate-200">{user.full_name}</p>
+            <p className="truncate text-xs text-slate-600">{user.email}</p>
+          </div>
+          <button
+            onClick={onLogout}
+            title="Sign out"
+            className="shrink-0 rounded-md p-1.5 text-slate-500 transition-all duration-150 hover:bg-[#1e1e2e] hover:text-slate-300"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ---- ChatTab ----
+interface ChatTabProps {
+  question: string;
+  setQuestion: (v: string) => void;
+  departmentFilter: string;
+  setDepartmentFilter: (v: string) => void;
+  departments: Department[];
+  isAdmin: boolean;
+  loading: boolean;
+  error: string;
+  answer: QueryResponse | null;
+  onSubmit: (e: FormEvent) => void;
+}
+
+function ChatTab({
+  question,
+  setQuestion,
+  departmentFilter,
+  setDepartmentFilter,
+  departments,
+  isAdmin,
+  loading,
+  error,
+  answer,
+  onSubmit,
+}: ChatTabProps) {
+  return (
+    <div className="flex h-full flex-col gap-5">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-100">Chat</h2>
+        <p className="text-sm text-slate-500">Ask questions about your company knowledge base.</p>
+      </div>
+
+      {answer && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-indigo-500 px-4 py-3 text-sm text-white shadow-lg shadow-indigo-500/20">
+              <p className="font-medium">Your question</p>
+            </div>
+          </div>
+          <div className="flex justify-start">
+            <div className="max-w-[85%] space-y-4 rounded-2xl rounded-tl-sm border border-[#1e1e2e] bg-[#111118] px-5 py-4 shadow-xl">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20">
+                    <Sparkles className="h-3 w-3 text-indigo-400" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-400">AI Answer</span>
+                </div>
+                <span className="rounded-full border border-[#1e1e2e] px-2.5 py-0.5 text-xs text-slate-500">
+                  {answer.model_used}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-slate-200">{answer.answer}</p>
+              <ConfidenceBar value={answer.confidence} />
+              {answer.needs_escalation && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Escalation recommended -- please consult your manager or HR.
+                </div>
+              )}
+              {answer.sources.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-600">Sources</p>
+                  <div className="flex flex-wrap gap-2">
+                    {answer.sources.map((src, i) => (
+                      <span
+                        key={src.document + "-" + i}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#1e1e2e] bg-[#0a0a0f] px-2.5 py-1 text-xs text-slate-400 transition-all duration-150 hover:border-slate-600"
+                        title={"Dept: " + src.department + " | Page: " + src.page + " | Score: " + src.relevance_score}
+                      >
+                        <FileText className="h-3 w-3 text-indigo-400" />
+                        {src.document}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-3 border-t border-[#1e1e2e] pt-3 text-xs text-slate-600">
+                <span>{answer.chunks_retrieved} chunks retrieved</span>
+                <span>{answer.tokens_used} tokens</span>
+                <span>{answer.response_time_ms}ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="mt-auto space-y-3">
+        {isAdmin && (
+          <select
+            className="w-full rounded-lg border border-[#1e1e2e] bg-[#111118] px-3.5 py-2.5 text-sm text-slate-300 outline-none transition-all duration-150 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+          >
+            <option value="">All departments</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.name}>{dept.name}</option>
+            ))}
+          </select>
+        )}
+        <div className="flex gap-2">
+          <textarea
+            rows={3}
+            className="flex-1 resize-none rounded-lg border border-[#1e1e2e] bg-[#111118] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition-all duration-150 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+            placeholder="Ask about company policy, procedures, or any internal topic..."
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (question.trim() && !loading) onSubmit(e as unknown as FormEvent);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !question.trim()}
+            className="self-end rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? <LoadingDots /> : "Send"}
+          </button>
+        </div>
+        <p className="text-xs text-slate-600">Press Enter to send, Shift+Enter for new line.</p>
+      </form>
+    </div>
+  );
+}
+
+// ---- HistoryTab ----
+function HistoryTab({ history }: { history: QueryHistoryItem[] }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-100">History</h2>
+        <p className="text-sm text-slate-500">{history.length} recent queries</p>
+      </div>
+      {history.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#1e1e2e] py-16 text-center">
+          <Clock className="mb-3 h-8 w-8 text-slate-700" />
+          <p className="text-sm font-medium text-slate-500">No history yet</p>
+          <p className="mt-1 text-xs text-slate-700">Ask your first question to see it here.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {history.map((item) => {
+            const resolved = !item.needs_escalation;
+            const conf = item.confidence ?? 0;
+            const confPct = Math.round(conf * 100);
+            return (
+              <article
+                key={item.id}
+                className={
+                  "group relative rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700 " +
+                  (resolved ? "border-l-[3px] border-l-emerald-500 pl-4" : "border-l-[3px] border-l-amber-500 pl-4")
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-100">{item.question}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">{item.answer}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span
+                      className={
+                        "rounded-full px-2 py-0.5 text-xs font-medium " +
+                        (resolved ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")
+                      }
+                    >
+                      {resolved ? "Resolved" : "Escalated"}
+                    </span>
+                    <span className="rounded-full border border-[#1e1e2e] px-2 py-0.5 text-xs text-slate-500">
+                      {confPct}% conf
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-700">
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- DocumentsTab ----
+interface DocumentsTabProps {
+  documents: DocumentItem[];
+  departments: Department[];
+  isAdmin: boolean;
+  uploadFile: File | null;
+  setUploadFile: (f: File | null) => void;
+  uploadTitle: string;
+  setUploadTitle: (v: string) => void;
+  uploadDeptId: string;
+  setUploadDeptId: (v: string) => void;
+  uploading: boolean;
+  uploadError: string;
+  uploadSuccess: string;
+  onUpload: (e: FormEvent) => void;
+}
+
+function DocumentsTab({
+  documents,
+  departments,
+  isAdmin,
+  uploadFile,
+  setUploadFile,
+  uploadTitle,
+  setUploadTitle,
+  uploadDeptId,
+  setUploadDeptId,
+  uploading,
+  uploadError,
+  uploadSuccess,
+  onUpload,
+}: DocumentsTabProps) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-100">Documents</h2>
+        <p className="text-sm text-slate-500">{documents.length} documents in the knowledge base</p>
+      </div>
+
+      {isAdmin && (
+        <div className="rounded-xl border border-[#1e1e2e] bg-[#111118] p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+              <Upload className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-200">Upload document</p>
+              <p className="text-xs text-slate-600">PDF, DOCX, or TXT (max 50MB)</p>
+            </div>
+          </div>
+          {uploadError && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {uploadError}
+            </div>
+          )}
+          {uploadSuccess && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-400">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {uploadSuccess}
+            </div>
+          )}
+          <form onSubmit={onUpload} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                type="text"
+                placeholder="Document title (required)"
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+                className="w-full rounded-lg border border-[#1e1e2e] bg-[#0a0a0f] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition-all duration-150 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+              />
+              <select
+                value={uploadDeptId}
+                onChange={(e) => setUploadDeptId(e.target.value)}
+                className="w-full rounded-lg border border-[#1e1e2e] bg-[#0a0a0f] px-3.5 py-2.5 text-sm text-slate-300 outline-none transition-all duration-150 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+              >
+                <option value="">General (no department)</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#1e1e2e] bg-[#0a0a0f] p-6 text-center transition-all duration-150 hover:border-indigo-500/50 hover:bg-[#0d0d14]">
+              <Upload className="mb-2 h-6 w-6 text-slate-600" />
+              <p className="text-sm text-slate-400">
+                {uploadFile ? uploadFile.name : "Click to select a file"}
+              </p>
+              <p className="mt-1 text-xs text-slate-600">PDF, DOCX, or TXT</p>
+              <input
+                type="file"
+                accept=".pdf,.docx,.txt"
+                className="hidden"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={uploading || !uploadFile || !uploadTitle.trim()}
+              className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading ? <LoadingDots /> : <><Upload className="h-3.5 w-3.5" /> Upload</>}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {documents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#1e1e2e] py-16 text-center">
+          <FileText className="mb-3 h-8 w-8 text-slate-700" />
+          <p className="text-sm font-medium text-slate-500">No documents yet</p>
+          <p className="mt-1 text-xs text-slate-700">Upload your first document to get started.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="group rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700"
+            >
+              <div className="flex items-start gap-3">
+                <FileTypeIcon type={doc.file_type} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-100">{doc.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-600">{doc.filename}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {doc.department_name && (
+                  <span className="rounded-full border border-[#1e1e2e] bg-[#0a0a0f] px-2 py-0.5 text-xs text-slate-400">
+                    {doc.department_name}
+                  </span>
+                )}
+                <span className="rounded-full border border-[#1e1e2e] bg-[#0a0a0f] px-2 py-0.5 text-xs text-slate-500">
+                  {doc.chunk_count} chunks
+                </span>
+              </div>
+              <div className="mt-3">
+                <StatusDot status={doc.status} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- AdminTab ----
+interface AdminTabProps {
+  departments: Department[];
+  documents: DocumentItem[];
+  uploadFile: File | null;
+  setUploadFile: (f: File | null) => void;
+  uploadTitle: string;
+  setUploadTitle: (v: string) => void;
+  uploadDeptId: string;
+  setUploadDeptId: (v: string) => void;
+  uploading: boolean;
+  uploadError: string;
+  uploadSuccess: string;
+  onUpload: (e: FormEvent) => void;
+}
+
+function AdminTab({
+  departments,
+  documents,
+  uploadFile,
+  setUploadFile,
+  uploadTitle,
+  setUploadTitle,
+  uploadDeptId,
+  setUploadDeptId,
+  uploading,
+  uploadError,
+  uploadSuccess,
+  onUpload,
+}: AdminTabProps) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-100">Admin</h2>
+        <p className="text-sm text-slate-500">Manage departments and upload documents.</p>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Left: Department cards */}
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600">Departments</p>
+          {departments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#1e1e2e] py-10 text-center">
+              <Users className="mb-2 h-7 w-7 text-slate-700" />
+              <p className="text-sm text-slate-600">No departments found</p>
+            </div>
+          ) : (
+            departments.map((dept) => {
+              const deptDocs = documents.filter((d) => d.department_name === dept.name);
+              return (
+                <div
+                  key={dept.id}
+                  className="rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-100">{dept.name}</p>
+                      {dept.description && (
+                        <p className="mt-0.5 truncate text-xs text-slate-600">{dept.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-3">
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <FileText className="h-3 w-3" />
+                      {deptDocs.length} docs
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <Layers className="h-3 w-3" />
+                      {deptDocs.reduce((sum, d) => sum + d.chunk_count, 0)} chunks
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Right: Upload form */}
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600">Upload Document</p>
+          <div className="rounded-xl border border-[#1e1e2e] bg-[#111118] p-5">
+            {uploadError && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-xs text-red-400">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {uploadError}
+              </div>
+            )}
+            {uploadSuccess && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-400">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {uploadSuccess}
+              </div>
+            )}
+            <form onSubmit={onUpload} className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-slate-600">Title</label>
+                <input
+                  type="text"
+                  placeholder="Document title (required)"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full rounded-lg border border-[#1e1e2e] bg-[#0a0a0f] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition-all duration-150 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-slate-600">Department</label>
+                <select
+                  value={uploadDeptId}
+                  onChange={(e) => setUploadDeptId(e.target.value)}
+                  className="w-full rounded-lg border border-[#1e1e2e] bg-[#0a0a0f] px-3.5 py-2.5 text-sm text-slate-300 outline-none transition-all duration-150 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+                >
+                  <option value="">General (no department)</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-slate-600">File</label>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#1e1e2e] bg-[#0a0a0f] p-5 text-center transition-all duration-150 hover:border-indigo-500/50 hover:bg-[#0d0d14]">
+                  <Upload className="mb-2 h-5 w-5 text-slate-600" />
+                  <p className="text-sm text-slate-400">
+                    {uploadFile ? uploadFile.name : "Click to select a file"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600">PDF, DOCX, or TXT (max 50MB)</p>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    className="hidden"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={uploading || !uploadFile || !uploadTitle.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {uploading ? <LoadingDots /> : <><Upload className="h-3.5 w-3.5" /> Upload document</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Main App ----
 function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(localStorage.getItem("eka_access_token"));
+  const [accessToken, setAccessToken] = useState<string | null>(
+    localStorage.getItem("eka_access_token"),
+  );
   const [email, setEmail] = useState("admin@enterprise.com");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
@@ -67,24 +843,24 @@ function App() {
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
-  const tabs = useMemo(() => {
+  // Keep tabs list in sync with admin status
+  const _tabs = useMemo(() => {
     const base: TabKey[] = ["chat", "history", "documents"];
     if (isAdmin) base.push("admin");
     return base;
   }, [isAdmin]);
+  // _tabs is used to ensure admin tab is only accessible when isAdmin
+  void _tabs;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthCode = params.get("oauth_code");
     const oauthError = params.get("error");
-
     if (oauthError) {
       window.history.replaceState({}, "", window.location.pathname);
-      // Schedule state update outside the effect body to avoid cascading renders
       setTimeout(() => setError(oauthError), 0);
       return;
     }
-
     if (oauthCode) {
       void exchangeOAuthCode(oauthCode);
       window.history.replaceState({}, "", window.location.pathname);
@@ -199,7 +975,6 @@ function App() {
   async function uploadDocument(e: FormEvent) {
     e.preventDefault();
     if (!uploadFile || !uploadTitle.trim()) return;
-
     const ext = uploadFile.name.split(".").pop()?.toLowerCase();
     if (!ext || !["pdf", "docx", "txt"].includes(ext)) {
       setUploadError("Only PDF, DOCX, and TXT files are allowed.");
@@ -209,7 +984,6 @@ function App() {
       setUploadError("File size must be less than 50MB.");
       return;
     }
-
     setUploading(true);
     setUploadError("");
     setUploadSuccess("");
@@ -218,7 +992,6 @@ function App() {
       formData.append("file", uploadFile);
       formData.append("title", uploadTitle.trim());
       if (uploadDeptId) formData.append("department_id", uploadDeptId);
-
       await api.post("/documents/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -234,438 +1007,81 @@ function App() {
     }
   }
 
-  const dashboardStats = useMemo(
-    () => [
-      { label: "Documents", value: documents.length, icon: FileText },
-      { label: "Queries", value: history.length, icon: Search },
-      { label: "Departments", value: departments.length, icon: Users },
-    ],
-    [documents.length, history.length, departments.length],
-  );
-
+  // Unauthenticated: show login page
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <div className="mx-auto flex min-h-screen max-w-[1300px] flex-col px-6 py-10 lg:px-8">
-          <header className="flex flex-col gap-6 rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-[0_30px_120px_rgba(15,23,42,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
-            <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Enterprise Knowledge Assistant</p>
-              <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Modern AI search for company policy and team knowledge.</h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-400">Secure access for employees to find official answers across internal documents and workflows.</p>
-            </div>
-            <div className="grid gap-4 sm:max-w-md">
-              <div className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6 shadow-xl shadow-slate-950/20">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Live demo</p>
-                <p className="mt-4 text-lg font-semibold text-white">Sign in with Google or your company account.</p>
-                <button onClick={loginWithGoogle} disabled={loading} className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60">
-                  <Sparkles className="h-4 w-4" /> Continue with Google
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <main className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="space-y-6">
-              <div className="rounded-[2rem] border border-slate-800 bg-slate-900 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.3)]">
-                <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Why this assistant</p>
-                <h2 className="mt-4 text-3xl font-semibold text-white">A polished knowledge experience for modern teams.</h2>
-                <p className="mt-4 text-slate-400">Built using retrieval-augmented generation, this assistant connects employees with relevant policy documents and trusted answers.</p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                {featureCards.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={item.title} className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6 shadow-md shadow-slate-950/20">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-indigo-600 text-white">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <h3 className="mt-5 text-xl font-semibold text-white">{item.title}</h3>
-                      <p className="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="rounded-[2rem] border border-slate-800 bg-slate-900 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-              <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Login</p>
-              <h2 className="mt-4 text-3xl font-semibold text-white">Sign in to your knowledge hub</h2>
-              <p className="mt-3 text-slate-400">Enter your credentials or use Google sign-in to access secure internal search.</p>
-              {error && <div className="mt-6 rounded-3xl bg-rose-950/80 p-4 text-sm text-rose-300">{error}</div>}
-              <form onSubmit={login} className="mt-6 space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-300">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                    placeholder="admin@enterprise.com"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-300">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-                <button type="submit" disabled={loading} className="w-full rounded-3xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">
-                  {loading ? "Signing in..." : "Sign in"}
-                </button>
-                <button type="button" disabled={loading} onClick={loginWithGoogle} className="w-full rounded-3xl border border-slate-700 bg-slate-950 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800 disabled:opacity-60">
-                  Continue with Google
-                </button>
-              </form>
-            </section>
-          </main>
-        </div>
-      </div>
+      <LoginPage
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        error={error}
+        loading={loading}
+        onLogin={login}
+        onGoogle={loginWithGoogle}
+      />
     );
   }
 
+  // Authenticated: sidebar layout
+  const uploadProps = {
+    uploadFile,
+    setUploadFile,
+    uploadTitle,
+    setUploadTitle,
+    uploadDeptId,
+    setUploadDeptId,
+    uploading,
+    uploadError,
+    uploadSuccess,
+    onUpload: uploadDocument,
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-[1420px] px-6 py-8 lg:px-8">
-        <header className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-[0_30px_120px_rgba(15,23,42,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Enterprise Knowledge Assistant</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">A professional internal AI assistant for secure policy search.</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">Get rapid, citation-backed responses from your company documents, with RBAC enforcement and intelligent department filtering.</p>
-          </div>
-          <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-800 bg-slate-950 p-5 text-sm text-slate-300 shadow-xl shadow-slate-950/20">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Signed in as</p>
-                <p className="mt-2 font-semibold text-white">{user.full_name}</p>
-                <p className="text-sm text-slate-500">{user.email}</p>
-              </div>
-              <button onClick={logout} className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800">Sign out</button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {dashboardStats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={stat.label} className="rounded-3xl bg-slate-900 p-4">
-                    <div className="flex items-center gap-3 text-slate-300">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-3xl bg-slate-800 text-indigo-300">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{stat.value}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </header>
+    <div className="flex min-h-screen bg-[#0a0a0f] text-[#f1f5f9]">
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isAdmin={isAdmin}
+        user={user}
+        onLogout={logout}
+      />
 
-        <nav className="mb-6 flex flex-wrap gap-3 rounded-3xl border border-slate-800 bg-slate-900 p-3">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${activeTab === tab ? "bg-indigo-600 text-white" : "bg-slate-950 text-slate-300 hover:bg-slate-800"}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-
-        <div className="grid gap-6 xl:grid-cols-[1.55fr_0.85fr]">
-          <section className="space-y-6">
-            {activeTab === "chat" && (
-              <article className="rounded-[2rem] border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Ask a question</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Search your company knowledgebase.</h2>
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Receive concise, referenced answers to employee questions.</p>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm text-slate-300">
-                    <Search className="h-4 w-4" /> Instant retrieval
-                  </div>
-                </div>
-                <form onSubmit={askQuestion} className="mt-6 space-y-4">
-                  <textarea
-                    className="w-full rounded-[1.75rem] border border-slate-700 bg-slate-950 px-5 py-4 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                    placeholder="Ask how to escalate a security incident, request PTO, or find policy details."
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                  />
-                  {isAdmin && (
-                    <select
-                      className="w-full rounded-[1.75rem] border border-slate-700 bg-slate-950 px-5 py-4 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                      value={departmentFilter}
-                      onChange={(e) => setDepartmentFilter(e.target.value)}
-                    >
-                      <option value="">Search across all departments</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.name}>{dept.name}</option>
-                      ))}
-                    </select>
-                  )}
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {loading ? "Searching..." : "Ask the assistant"}
-                    </button>
-                    <p className="text-sm text-slate-500">Answers include citations, confidence, and escalation guidance.</p>
-                  </div>
-                </form>
-
-                {error && <div className="mt-5 rounded-3xl bg-rose-950/80 p-4 text-sm text-rose-300">{error}</div>}
-
-                {answer && (
-                  <div className="mt-8 space-y-5 rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">AI response</p>
-                        <h3 className="mt-2 text-2xl font-semibold text-white">Answer summary</h3>
-                      </div>
-                      <div className="rounded-full bg-slate-900 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-400">{answer.model_used}</div>
-                    </div>
-                    <div className="prose prose-invert max-w-none text-slate-100">
-                      <p>{answer.answer}</p>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-4">
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Confidence</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{answer.confidence.toFixed(2)}</p>
-                      </div>
-                      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-4">
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Escalation</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{answer.needs_escalation ? "Recommended" : "Not required"}</p>
-                      </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {answer.sources.map((source, index) => (
-                        <div key={`${source.document}-${index}`} className="rounded-3xl border border-slate-800 bg-slate-900 p-4">
-                          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Document</p>
-                          <p className="mt-2 text-sm font-semibold text-white">{source.document}</p>
-                          <p className="mt-2 text-sm text-slate-400">Page {source.page} • Dept {source.department}</p>
-                          <p className="mt-3 text-xs uppercase tracking-[0.3em] text-slate-500">Relevance score</p>
-                          <p className="mt-1 text-sm text-indigo-300">{source.relevance_score}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </article>
-            )}
-
-            {activeTab === "history" && (
-              <section className="rounded-[2rem] border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Query history</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Recent interactions</h2>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm text-slate-300">
-                    <FileText className="h-4 w-4" /> {history.length} queries
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {history.length === 0 ? (
-                    <div className="rounded-[1.75rem] border border-dashed border-slate-700 bg-slate-950 p-8 text-center text-slate-400">No history yet — ask your first question to generate a query.</div>
-                  ) : (
-                    history.map((item) => (
-                      <article key={item.id} className="rounded-[1.75rem] border border-slate-800 bg-slate-950 p-5">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-white">{item.question}</p>
-                            <p className="mt-2 text-sm text-slate-400">{item.answer}</p>
-                          </div>
-                          <div className="rounded-3xl bg-slate-900 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-400">{item.needs_escalation ? "Escalated" : "Resolved"}</div>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.3em] text-slate-500">
-                          <span>{item.confidence !== null ? `Confidence ${item.confidence.toFixed(2)}` : "No confidence"}</span>
-                          <span>{new Date(item.created_at).toLocaleString()}</span>
-                        </div>
-                      </article>
-                    ))
-                  )}
-                </div>
-              </section>
-            )}
-
-            {activeTab === "documents" && (
-              <section className="rounded-[2rem] border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Knowledge base</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Documents</h2>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm text-slate-300">
-                    <Layers className="h-4 w-4" /> {documents.length} documents
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <div className="mb-6 rounded-[1.75rem] border border-slate-800 bg-slate-950 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-3xl bg-indigo-600 text-white">
-                        <Upload className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-white">Upload new document</p>
-                        <p className="text-xs text-slate-500">PDF, DOCX, or TXT (max 50MB)</p>
-                      </div>
-                    </div>
-                    {uploadError && <div className="mb-4 rounded-3xl bg-rose-950/80 p-4 text-sm text-rose-300">{uploadError}</div>}
-                    {uploadSuccess && <div className="mb-4 rounded-3xl bg-emerald-950/80 p-4 text-sm text-emerald-300">{uploadSuccess}</div>}
-                    <form onSubmit={uploadDocument} className="space-y-4">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <input
-                          type="text"
-                          placeholder="Document title (required)"
-                          value={uploadTitle}
-                          onChange={(e) => setUploadTitle(e.target.value)}
-                          className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                        />
-                        <select
-                          value={uploadDeptId}
-                          onChange={(e) => setUploadDeptId(e.target.value)}
-                          className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-500"
-                        >
-                          <option value="">General (no department)</option>
-                          {departments.map((dept) => (
-                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <label className="flex cursor-pointer flex-col items-center justify-center rounded-[1.75rem] border-2 border-dashed border-slate-700 bg-slate-900 p-6 text-center transition hover:border-indigo-500 hover:bg-slate-800/50">
-                        <Upload className="mb-2 h-8 w-8 text-slate-500" />
-                        <p className="text-sm text-slate-300">
-                          {uploadFile ? uploadFile.name : "Click to select a file"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">PDF, DOCX, or TXT</p>
-                        <input
-                          type="file"
-                          accept=".pdf,.docx,.txt"
-                          className="hidden"
-                          onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
-                      <button
-                        type="submit"
-                        disabled={uploading || !uploadFile || !uploadTitle.trim()}
-                        className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {uploading ? "Uploading..." : "Upload document"}
-                      </button>
-                    </form>
-                  </div>
-                )}
-                <div className="overflow-hidden rounded-3xl border border-slate-800">
-                  <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
-                    <thead className="bg-slate-950 text-slate-400">
-                      <tr>
-                        <th className="px-5 py-4">Title</th>
-                        <th className="px-5 py-4">Type</th>
-                        <th className="px-5 py-4">Status</th>
-                        <th className="px-5 py-4">Department</th>
-                        <th className="px-5 py-4">Chunks</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800 bg-slate-950">
-                      {documents.map((doc) => (
-                        <tr key={doc.id} className="hover:bg-slate-900/80 transition-colors">
-                          <td className="px-5 py-4 text-slate-100">{doc.title}</td>
-                          <td className="px-5 py-4 text-slate-400">{doc.file_type}</td>
-                          <td className="px-5 py-4 text-slate-400">{doc.status}</td>
-                          <td className="px-5 py-4 text-slate-400">{doc.department_name || "general"}</td>
-                          <td className="px-5 py-4 text-slate-400">{doc.chunk_count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
-            {activeTab === "admin" && isAdmin && (
-              <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Admin panel</p>
-                    <h2 className="mt-3 text-3xl font-semibold text-white">Departments</h2>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm text-slate-300">
-                    <Users className="h-4 w-4" /> {departments.length} groups
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {departments.map((dept) => (
-                    <div key={dept.id} className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-11 w-11 items-center justify-center rounded-3xl bg-indigo-600 text-white"><CheckCircle2 className="h-5 w-5" /></span>
-                        <div>
-                          <p className="text-base font-semibold text-white">{dept.name}</p>
-                          <p className="text-sm text-slate-500">Department</p>
-                        </div>
-                      </div>
-                      <p className="mt-4 text-sm leading-6 text-slate-400">{dept.description || "No description provided."}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </section>
-
-          <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Product highlights</p>
-                  <h3 className="mt-3 text-xl font-semibold text-white">Designed for modern teams</h3>
-                </div>
-                <Sparkles className="h-6 w-6 text-indigo-400" />
-              </div>
-              <div className="mt-5 space-y-4 text-sm text-slate-400">
-                <div className="rounded-3xl border border-slate-800 bg-slate-950 p-4">
-                  <p className="font-semibold text-white">Secure by design</p>
-                  <p>RBAC-aware search and encrypted sessions keep internal knowledge accessible only to authorized staff.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-800 bg-slate-950 p-4">
-                  <p className="font-semibold text-white">Actionable answers</p>
-                  <p>The assistant returns citations, confidence scores, and escalation flags for trusted decision-making.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-800 bg-slate-950 p-4">
-                  <p className="font-semibold text-white">Enterprise-ready</p>
-                  <p>Built for HR, legal, IT, and operations teams with document ingestion and lifecycle support.</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-              <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Workflow</p>
-              <h3 className="mt-3 text-xl font-semibold text-white">From documents to answers</h3>
-              <div className="mt-5 space-y-4 text-sm text-slate-400">
-                {[
-                  { title: "Upload knowledge", description: "Ingest manuals, handbooks, and SOPs for immediate searchability." },
-                  { title: "Search with AI", description: "Ask plain-language questions with department-aware context." },
-                  { title: "Review results", description: "Use citations and confidence to validate every answer." },
-                ].map((item) => (
-                  <div key={item.title} className="rounded-3xl border border-slate-800 bg-slate-950 p-4">
-                    <p className="font-semibold text-white">{item.title}</p>
-                    <p className="mt-2 text-sm text-slate-400">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </aside>
+      {/* Main content area */}
+      <main className="ml-60 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-4xl px-6 py-8">
+          {activeTab === "chat" && (
+            <ChatTab
+              question={question}
+              setQuestion={setQuestion}
+              departmentFilter={departmentFilter}
+              setDepartmentFilter={setDepartmentFilter}
+              departments={departments}
+              isAdmin={isAdmin}
+              loading={loading}
+              error={error}
+              answer={answer}
+              onSubmit={askQuestion}
+            />
+          )}
+          {activeTab === "history" && <HistoryTab history={history} />}
+          {activeTab === "documents" && (
+            <DocumentsTab
+              documents={documents}
+              departments={departments}
+              isAdmin={isAdmin}
+              {...uploadProps}
+            />
+          )}
+          {activeTab === "admin" && isAdmin && (
+            <AdminTab
+              departments={departments}
+              documents={documents}
+              {...uploadProps}
+            />
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
