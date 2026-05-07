@@ -132,6 +132,7 @@ class DocumentListResponse(BaseModel):
 class QueryRequest(BaseModel):
     question: str = Field(min_length=3, max_length=2000)
     department_filter: Optional[str] = None  # Override RBAC for admins
+    llm_provider: Optional[str] = None
 
 
 class SourceCitation(BaseModel):

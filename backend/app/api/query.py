@@ -77,6 +77,7 @@ async def ask_question(
             question=req.question,
             department=department,
             departments=departments,
+            llm_provider=req.llm_provider,
         )
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
@@ -102,7 +103,8 @@ async def ask_question(
         department_filter=department,
     )
     db.add(history)
-    await db.flush()
+    await db.commit()
+    await db.refresh(history)
 
     return QueryResponse(
         answer=response.answer,

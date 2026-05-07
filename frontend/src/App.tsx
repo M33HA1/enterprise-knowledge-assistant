@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { FormEvent } from "react";
 import { api } from "./api";
 import type {
@@ -328,6 +329,8 @@ interface ChatTabProps {
   question: string;
   setQuestion: (v: string) => void;
   lastQuestion: string;
+  llmProvider: string;
+  setLlmProvider: (v: string) => void;
   departmentFilter: string;
   setDepartmentFilter: (v: string) => void;
   departments: Department[];
@@ -342,6 +345,8 @@ function ChatTab({
   question,
   setQuestion,
   lastQuestion,
+  llmProvider,
+  setLlmProvider,
   departmentFilter,
   setDepartmentFilter,
   departments,
@@ -353,19 +358,35 @@ function ChatTab({
 }: ChatTabProps) {
   return (
     <div className="flex h-full flex-col gap-5">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-100">Chat</h2>
-        <p className="text-sm text-slate-500">Ask questions about your company knowledge base.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-100">Chat</h2>
+          <p className="text-sm text-slate-500">Ask questions about your company knowledge base.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Model:</span>
+          <select
+            value={llmProvider}
+            onChange={(e) => setLlmProvider(e.target.value)}
+            className="rounded-lg border border-[#1e1e2e] bg-[#111118] px-3 py-1.5 text-xs text-slate-300 outline-none transition-all duration-150 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+          >
+            <option value="">Default</option>
+            <option value="openai">OpenAI (GPT-4o-mini)</option>
+            <option value="claude">Claude (3.5 Sonnet)</option>
+            <option value="gemini">Gemini (2.0 Flash)</option>
+            <option value="grok">Grok (xAI)</option>
+          </select>
+        </div>
       </div>
 
       {answer && (
         <div className="space-y-3">
-          <div className="flex justify-end">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex justify-end">
             <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-indigo-500 px-4 py-3 text-sm text-white shadow-lg shadow-indigo-500/20">
               <p>{lastQuestion}</p>
             </div>
-          </div>
-          <div className="flex justify-start">
+          </motion.div>
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="flex justify-start">
             <div className="max-w-[85%] space-y-4 rounded-2xl rounded-tl-sm border border-[#1e1e2e] bg-[#111118] px-5 py-4 shadow-xl">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -409,7 +430,7 @@ function ChatTab({
                 <span>{answer.response_time_ms}ms</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -482,8 +503,11 @@ function HistoryTab({ history }: { history: QueryHistoryItem[] }) {
             const conf = item.confidence ?? 0;
             const confPct = Math.round(conf * 100);
             return (
-              <article
+              <motion.article
                 key={item.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.05 * Math.min(10, history.indexOf(item)) }}
                 className={
                   "group relative rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700 " +
                   (resolved ? "border-l-[3px] border-l-emerald-500 pl-4" : "border-l-[3px] border-l-amber-500 pl-4")
@@ -511,7 +535,7 @@ function HistoryTab({ history }: { history: QueryHistoryItem[] }) {
                 <p className="mt-2 text-xs text-slate-700">
                   {new Date(item.created_at).toLocaleString()}
                 </p>
-              </article>
+              </motion.article>
             );
           })}
         </div>
@@ -635,9 +659,13 @@ function DocumentsTab({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {documents.map((doc) => (
-            <div
+            <motion.div
               key={doc.id}
-              className="group rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 * Math.min(10, documents.indexOf(doc)) }}
+              whileHover={{ y: -2 }}
+              className="group rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 shadow-lg transition-all duration-150 hover:border-slate-600"
             >
               <div className="flex items-start gap-3">
                 <FileTypeIcon type={doc.file_type} />
@@ -659,7 +687,7 @@ function DocumentsTab({
               <div className="mt-3">
                 <StatusDot status={doc.status} />
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -830,6 +858,7 @@ function App() {
   const [error, setError] = useState("");
   const [question, setQuestion] = useState("");
   const [lastQuestion, setLastQuestion] = useState("");
+  const [llmProvider, setLlmProvider] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [answer, setAnswer] = useState<QueryResponse | null>(null);
   const [history, setHistory] = useState<QueryHistoryItem[]>([]);
@@ -967,6 +996,7 @@ function App() {
       const res = await api.post<QueryResponse>("/query/", {
         question: asked,
         department_filter: departmentFilter || undefined,
+        llm_provider: llmProvider || undefined,
       });
       setLastQuestion(asked);
       setAnswer(res.data);
@@ -990,7 +1020,7 @@ function App() {
 
   async function loadDocuments() {
     try {
-      const res = await api.get("/documents?page=1&page_size=50");
+      const res = await api.get("/documents/?page=1&page_size=50");
       setDocuments(res.data.documents || []);
     } catch {
       // Non-critical — leave existing state
@@ -1084,11 +1114,21 @@ function App() {
       {/* Main content area */}
       <main className="ml-60 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-6 py-8">
-          {activeTab === "chat" && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === "chat" && (
             <ChatTab
               question={question}
               setQuestion={setQuestion}
               lastQuestion={lastQuestion}
+              llmProvider={llmProvider}
+              setLlmProvider={setLlmProvider}
               departmentFilter={departmentFilter}
               setDepartmentFilter={setDepartmentFilter}
               departments={departments}
@@ -1115,6 +1155,8 @@ function App() {
               {...uploadProps}
             />
           )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>

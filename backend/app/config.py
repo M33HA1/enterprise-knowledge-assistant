@@ -16,6 +16,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
     CLAUDE = "claude"
     GEMINI = "gemini"
+    GROK = "grok"
 
 
 class EmbeddingProvider(str, Enum):
@@ -57,6 +58,10 @@ class Settings(BaseSettings):
     # Google Gemini (free tier friendly)
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-2.0-flash"
+
+    # Grok (xAI)
+    GROK_API_KEY: Optional[str] = None
+    GROK_MODEL: str = "grok-2-latest"
 
     # ─── Embedding Configuration ──────────────────────────────────
     EMBEDDING_PROVIDER: EmbeddingProvider = EmbeddingProvider.SENTENCE_TRANSFORMERS

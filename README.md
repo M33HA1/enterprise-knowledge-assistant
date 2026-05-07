@@ -39,7 +39,7 @@ EKA:  According to the Employee Handbook v3.2 (HR dept, p.4):
 | Feature | What it means for you |
 |---|---|
 | 🔒 **Department RBAC** | HR docs stay in HR. Engineering docs stay in Engineering. |
-| 🤖 **3 LLM providers** | OpenAI, Claude, or Gemini — swap with one env var |
+| 🤖 **4 LLM providers** | OpenAI, Claude, Gemini, or Grok — switch instantly from the chat interface |
 | 📄 **PDF / DOCX / TXT** | Upload any internal document, indexed in seconds |
 | 🔑 **Google OAuth + JWT** | Sign in with your company Google account |
 | 📊 **Confidence scores** | Know when to trust the answer vs. escalate to a human |
@@ -148,9 +148,9 @@ Password: admin123
 
 ## ⚙️ Configuration
 
-### Choosing your LLM
+### Choosing your Default LLM
 
-Set `LLM_PROVIDER` in `.env`:
+While users can now switch models dynamically from the Chat UI, you can set the default system `LLM_PROVIDER` in `.env`:
 
 ```bash
 # Free tier — recommended for development
@@ -164,6 +164,10 @@ OPENAI_API_KEY=sk-...
 # Alternative
 LLM_PROVIDER=claude
 ANTHROPIC_API_KEY=sk-ant-...
+
+# Grok
+LLM_PROVIDER=grok
+GROK_API_KEY=xai-...
 ```
 
 | Provider | Model | Cost | Best for |
@@ -171,6 +175,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 | `gemini` | gemini-2.0-flash | **Free tier** (15 RPM) | Development |
 | `openai` | gpt-4o-mini | ~$0.15/1M tokens | Production |
 | `claude` | claude-3-5-sonnet | ~$3/1M tokens | High accuracy |
+| `grok`   | grok-beta | ~$5/1M tokens | Fast responses |
 
 ### All environment variables
 

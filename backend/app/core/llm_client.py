@@ -211,10 +211,73 @@ class GeminiClient(BaseLLMClient):
         return LLMResponse(content=c, model=self._model, tokens_used=total_tokens, confidence=self._estimate_confidence(c))
 
 
+class GrokClient(BaseLLMClient):
+    """
+    xAI Grok client using the OpenAI compatible endpoint.
+    """
+    def __init__(self):
+        from openai import OpenAI, AsyncOpenAI
+        if not settings.GROK_API_KEY:
+            raise ValueError("GROK_API_KEY required")
+        self._client = OpenAI(api_key=settings.GROK_API_KEY, base_url="https://api.x.ai/v1")
+        self._async_client = AsyncOpenAI(api_key=settings.GROK_API_KEY, base_url="https://api.x.ai/v1")
+        self._model = settings.GROK_MODEL
+        logger.info(f"Grok client: {self._model}")
+
+    def _build_messages(self, query, context, system_prompt):
+        return [
+            {"role": "system", "content": system_prompt or RAG_SYSTEM_PROMPT},
+            {"role": "user", "content": f"CONTEXT:\n---\n{context}\n---\n\nQUESTION: {query}\n\nAnswer from context only. Cite documents."},
+        ]
+
+    def generate(self, query, context, system_prompt=None):
+        from openai import AuthenticationError, RateLimitError, APIError
+        msgs = self._build_messages(query, context, system_prompt)
+        try:
+            r = self._client.chat.completions.create(model=self._model, messages=msgs, temperature=0.2, max_tokens=1500)
+        except AuthenticationError:
+            raise ValueError("Grok API key is invalid. Check GROK_API_KEY in .env.")
+        except RateLimitError as e:
+            raise ValueError(f"Grok rate limit exceeded. Details: {e}")
+        except APIError as e:
+            raise ValueError(f"Grok API error: {e}")
+        c = r.choices[0].message.content
+        return LLMResponse(content=c, model=self._model, tokens_used=r.usage.total_tokens, confidence=self._estimate_confidence(c))
+
+    async def agenerate(self, query, context, system_prompt=None):
+        from openai import AuthenticationError, RateLimitError, APIError
+        msgs = self._build_messages(query, context, system_prompt)
+        try:
+            r = await self._async_client.chat.completions.create(model=self._model, messages=msgs, temperature=0.2, max_tokens=1500)
+        except AuthenticationError:
+            raise ValueError("Grok API key is invalid. Check GROK_API_KEY in .env.")
+        except RateLimitError as e:
+            raise ValueError(f"Grok rate limit exceeded. Details: {e}")
+        except APIError as e:
+            raise ValueError(f"Grok API error: {e}")
+        c = r.choices[0].message.content
+        return LLMResponse(content=c, model=self._model, tokens_used=r.usage.total_tokens, confidence=self._estimate_confidence(c))
+
+
+def get_llm_client_by_provider(provider: str) -> BaseLLMClient:
+    """Factory: returns LLM client for specific provider."""
+    provider = provider.lower() if provider else ""
+    if provider == LLMProvider.CLAUDE.value:
+        return ClaudeClient()
+    elif provider == LLMProvider.GEMINI.value:
+        return GeminiClient()
+    elif provider == LLMProvider.GROK.value:
+        return GrokClient()
+    elif provider == LLMProvider.OPENAI.value:
+        return OpenAIClient()
+    return get_llm_client()  # fallback to default
+
 def get_llm_client() -> BaseLLMClient:
-    """Factory: returns configured LLM client."""
+    """Factory: returns configured default LLM client."""
     if settings.LLM_PROVIDER == LLMProvider.CLAUDE:
         return ClaudeClient()
     elif settings.LLM_PROVIDER == LLMProvider.GEMINI:
         return GeminiClient()
+    elif settings.LLM_PROVIDER == LLMProvider.GROK:
+        return GrokClient()
     return OpenAIClient()

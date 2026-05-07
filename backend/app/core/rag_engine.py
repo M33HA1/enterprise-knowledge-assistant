@@ -115,6 +115,7 @@ class RAGEngine:
         department: Optional[str] = None,
         departments: Optional[List[str]] = None,
         top_k: int = None,
+        llm_provider: Optional[str] = None,
     ) -> RAGResponse:
         """
         Full RAG query pipeline: embed query → retrieve → generate answer.
@@ -152,7 +153,13 @@ class RAGEngine:
         sources = self._extract_sources(results)
 
         # 4. Generate answer with LLM
-        llm_response = self._llm.generate(question, context)
+        if llm_provider:
+            from app.core.llm_client import get_llm_client_by_provider
+            llm = get_llm_client_by_provider(llm_provider)
+        else:
+            llm = self._llm
+
+        llm_response = llm.generate(question, context)
 
         # 5. Determine if escalation is needed
         needs_escalation = (
@@ -176,6 +183,7 @@ class RAGEngine:
         department: Optional[str] = None,
         departments: Optional[List[str]] = None,
         top_k: int = None,
+        llm_provider: Optional[str] = None,
     ) -> RAGResponse:
         """Async version of query for FastAPI endpoints."""
         results = self._vector_store.search(
@@ -194,7 +202,14 @@ class RAGEngine:
 
         context = self._build_context(results)
         sources = self._extract_sources(results)
-        llm_response = await self._llm.agenerate(question, context)
+        
+        if llm_provider:
+            from app.core.llm_client import get_llm_client_by_provider
+            llm = get_llm_client_by_provider(llm_provider)
+        else:
+            llm = self._llm
+
+        llm_response = await llm.agenerate(question, context)
 
         needs_escalation = (
             llm_response.confidence < settings.CONFIDENCE_THRESHOLD

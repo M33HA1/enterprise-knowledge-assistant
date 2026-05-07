@@ -136,8 +136,16 @@ async def upload_document(
         doc.status = DocumentStatus.FAILED
         doc.error_message = str(e)
 
-    await db.flush()
+    await db.commit()
+    await db.refresh(doc)
 
+    # Load relationships for the response if possible, though we don't strictly need them
+    # because they're optional in DocumentResponse.
+    dept_name = None
+    if doc.department_id:
+        dept = await db.get(Department, doc.department_id)
+        if dept: dept_name = dept.name
+        
     return DocumentResponse(
         id=doc.id,
         title=doc.title,
@@ -148,7 +156,9 @@ async def upload_document(
         chunk_count=doc.chunk_count,
         total_pages=doc.total_pages,
         department_id=doc.department_id,
+        department_name=dept_name,
         uploaded_by=doc.uploaded_by,
+        uploader_name=user.full_name,
         description=doc.description,
         tags=doc.tags,
         created_at=doc.created_at,
