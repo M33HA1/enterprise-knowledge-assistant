@@ -84,8 +84,8 @@ class Settings(BaseSettings):
     # ─── Authentication ───────────────────────────────────────────
     SECRET_KEY: str = "change-this-in-production-use-openssl-rand-hex-32"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480   # 8 hours — full workday session
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30      # 30 days — stay logged in
 
     # Google OAuth
     GOOGLE_CLIENT_ID: Optional[str] = None

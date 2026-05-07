@@ -17,6 +17,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Dispatch a custom event so App.tsx can react to forced logout
+function dispatchLogout() {
+  window.dispatchEvent(new CustomEvent("eka:logout"));
+}
+
 // Auto-refresh access token on 401, then retry the original request once
 let _refreshing = false;
 let _refreshQueue: Array<(token: string) => void> = [];
@@ -26,30 +31,36 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    // Only attempt refresh on 401, and not on the refresh endpoint itself
+    // Only attempt refresh on 401
+    // Skip if already retried, or if this IS the refresh request (avoid loop)
     if (
       error.response?.status !== 401 ||
       original._retried ||
-      original.url?.includes("/auth/refresh")
+      original.url === "/auth/refresh"
     ) {
       return Promise.reject(error);
     }
 
     const refreshToken = localStorage.getItem("eka_refresh_token");
     if (!refreshToken) {
-      // No refresh token — clear storage and let the app handle logout
+      // No refresh token at all — force logout
       localStorage.removeItem("eka_access_token");
+      dispatchLogout();
       return Promise.reject(error);
     }
 
     original._retried = true;
 
     if (_refreshing) {
-      // Queue this request until the in-flight refresh completes
-      return new Promise((resolve) => {
+      // Another refresh is already in flight — queue this request
+      return new Promise((resolve, reject) => {
         _refreshQueue.push((newToken: string) => {
-          original.headers.Authorization = `Bearer ${newToken}`;
-          resolve(api.request(original));
+          if (newToken) {
+            original.headers.Authorization = `Bearer ${newToken}`;
+            resolve(api.request(original));
+          } else {
+            reject(error);
+          }
         });
       });
     }
@@ -65,17 +76,19 @@ api.interceptors.response.use(
         localStorage.setItem("eka_refresh_token", res.data.refresh_token);
       }
 
-      // Flush queued requests
+      // Flush queued requests with the new token
       _refreshQueue.forEach((cb) => cb(newToken));
       _refreshQueue = [];
 
       original.headers.Authorization = `Bearer ${newToken}`;
       return api.request(original);
     } catch {
-      // Refresh failed — clear tokens so the app redirects to login
+      // Refresh failed (refresh token expired or revoked) — force logout
       localStorage.removeItem("eka_access_token");
       localStorage.removeItem("eka_refresh_token");
+      _refreshQueue.forEach((cb) => cb(""));
       _refreshQueue = [];
+      dispatchLogout();
       return Promise.reject(error);
     } finally {
       _refreshing = false;

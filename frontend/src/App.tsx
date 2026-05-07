@@ -873,6 +873,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
+  // Listen for forced logout events dispatched by the API interceptor
+  // (triggered when token refresh fails — refresh token expired or revoked)
+  useEffect(() => {
+    const handleForcedLogout = () => logout();
+    window.addEventListener("eka:logout", handleForcedLogout);
+    return () => window.removeEventListener("eka:logout", handleForcedLogout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function exchangeOAuthCode(oauthCode: string) {
     try {
       const res = await api.post("/auth/oauth/exchange", { oauth_code: oauthCode });
