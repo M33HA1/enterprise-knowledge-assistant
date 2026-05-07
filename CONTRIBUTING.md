@@ -1,28 +1,38 @@
-# Contributing to Enterprise Knowledge Assistant
+# Contributing to EKA
 
-## Development Setup
+Thanks for wanting to improve this. Here's everything you need to get a dev environment running and submit a clean PR.
+
+---
+
+## 🏃 Local dev setup
 
 ### Backend
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
 
-# Start PostgreSQL (via Docker or local install)
-docker run -d --name eka-postgres \
+# Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate        # macOS/Linux
+# venv\Scripts\activate         # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+pip install pytest pytest-asyncio
+
+# Start a local PostgreSQL (Docker is easiest)
+docker run -d --name eka-db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=knowledge_assistant \
   -p 5432:5432 \
   postgres:16-alpine
 
-# Copy and configure environment
+# Configure environment
 cp ../.env.example ../.env
-# Edit ../.env with your API keys
+# Edit ../.env — set LLM_PROVIDER + API key + SECRET_KEY
 
-# Run the server
+# Run the server (auto-reloads on file changes)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -35,75 +45,182 @@ cp .env.example .env
 npm run dev
 ```
 
-## Code Style
+Frontend at `http://localhost:5173`, backend at `http://localhost:8000`.
 
-### Python (Backend)
-- Use type hints for all function signatures
-- Follow PEP 8 naming conventions
-- Use `async`/`await` for all I/O operations
-- Keep route handlers thin; business logic goes in services or core modules
-- Use FastAPI dependency injection for cross-cutting concerns
+---
 
-### TypeScript (Frontend)
-- Use strict TypeScript (no `any` unless unavoidable)
-- Follow existing Tailwind CSS patterns for styling
-- Keep the monolithic App.tsx structure (no component extraction without discussion)
-
-## Commit Convention
-
-Use conventional commits:
-
-```
-feat: add user avatar upload
-fix: correct department filter in query endpoint
-docs: update API endpoint table in README
-refactor: extract token validation to helper
-test: add integration tests for document upload
-```
-
-## Pull Request Process
-
-1. Create a feature branch from `main`
-2. Make your changes with clear commit messages
-3. Ensure all tests pass (`cd backend && python -m pytest tests/ -v`)
-4. Ensure frontend builds (`cd frontend && npm run build`)
-5. Open a PR with a description of what changed and why
-6. Wait for CI to pass and request review
-
-## Architecture Decisions
-
-### Adding a New LLM Provider
-
-1. Create a new client class in `backend/app/core/llm_client.py` extending `BaseLLMClient`
-2. Implement `generate()` and `agenerate()` methods
-3. Add the provider enum value to `LLMProvider` in `backend/app/config.py`
-4. Add configuration fields (API key, model name) to `Settings`
-5. Update the `get_llm_client()` factory function
-6. Add the provider's package to `requirements.txt`
-7. Document the new provider in README.md
-
-### Adding a New Document Type
-
-1. Add the extension to `ALLOWED_EXTENSIONS` in `backend/app/api/documents.py`
-2. Add a parser method to `DocumentParser` in `backend/app/core/document_processor.py`
-3. Update the file type validation in the frontend upload form
-
-## Running Tests
+## 🧪 Running tests
 
 ```bash
 # All backend tests
-cd backend && python -m pytest tests/ -v
+cd backend
+python -m pytest tests/ -v --tb=short
 
-# Specific test file
+# Just the config/env tests (fast, no model download)
+python -m pytest tests/test_env_config_fix.py tests/test_rate_limit.py -v
+
+# Full RAG pipeline (requires LLM API key in .env)
 python -m pytest tests/test_rag_pipeline.py -v
 
-# Full RAG pipeline (needs LLM API key)
-python -m tests.test_rag_pipeline --full
-
 # Frontend
-cd frontend && npm run lint && npm run build
+cd frontend
+npm run lint
+npm run build
 ```
 
-## Project Layout
+CI runs all of these automatically on every push to `main`.
 
-See the [README](README.md#project-structure) for the full directory tree and component descriptions.
+---
+
+## 📐 Code style
+
+### Python
+- Type hints on all function signatures
+- `async`/`await` for all I/O (database, HTTP, file)
+- Route handlers stay thin — business logic goes in `services/` or `core/`
+- Use FastAPI `Depends()` for auth, DB sessions, and rate limiting
+- No `passlib` — use `bcrypt` directly (see `auth_service.py`)
+
+### TypeScript
+- No `any` — use `unknown` + type narrowing or define an interface
+- All API error handling via the `apiErrMsg()` helper in `App.tsx`
+- Tailwind only — no inline styles, no CSS modules
+- Keep components in `App.tsx` unless they're genuinely reusable
+
+---
+
+## 📝 Commit convention
+
+Use [conventional commits](https://www.conventionalcommits.org/):
+
+```
+feat: add document tagging support
+fix: resolve bcrypt compatibility with Python 3.12
+docs: add API curl examples to README
+refactor: extract confidence scoring to helper function
+test: add property tests for rate limiter
+chore: upgrade sentence-transformers to 3.4.1
+```
+
+---
+
+## 🔀 PR process
+
+1. Branch from `main`: `git checkout -b feat/your-feature`
+2. Make changes with clear commits
+3. Run tests locally before pushing
+4. Open a PR — describe what changed and why
+5. CI must be green (backend tests + frontend lint/build + Docker build)
+6. One approval required to merge
+
+---
+
+## 🧩 Common extension patterns
+
+### Adding a new LLM provider
+
+```python
+# 1. backend/app/config.py — add to enum
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    CLAUDE = "claude"
+    GEMINI = "gemini"
+    MYMODEL = "mymodel"   # ← add here
+
+# 2. Add config fields
+class Settings(BaseSettings):
+    MYMODEL_API_KEY: Optional[str] = None
+    MYMODEL_MODEL: str = "my-model-name"
+
+# 3. backend/app/core/llm_client.py — new class
+class MyModelClient(BaseLLMClient):
+    def __init__(self):
+        ...
+    def generate(self, query, context, system_prompt=None) -> LLMResponse:
+        ...
+    async def agenerate(self, query, context, system_prompt=None) -> LLMResponse:
+        ...
+
+# 4. Update factory
+def get_llm_client() -> BaseLLMClient:
+    if settings.LLM_PROVIDER == LLMProvider.MYMODEL:
+        return MyModelClient()
+    ...
+```
+
+### Adding a new document type
+
+```python
+# backend/app/api/documents.py
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}  # add here
+
+# backend/app/core/document_processor.py
+class DocumentParser:
+    @staticmethod
+    def parse(file_path: str) -> ParsedDocument:
+        ...
+        elif ext == ".md":
+            return DocumentParser._parse_md(path)   # add branch
+
+    @staticmethod
+    def _parse_md(path: Path) -> ParsedDocument:
+        content = path.read_text(encoding="utf-8")
+        return ParsedDocument(
+            filename=path.name,
+            content=content,
+            pages=[content],
+            file_type="md",
+            total_pages=1,
+        )
+```
+
+```tsx
+// frontend/src/App.tsx — update file input
+<input type="file" accept=".pdf,.docx,.txt,.md" ... />
+```
+
+---
+
+## 🗄️ Database migrations
+
+The app uses `Base.metadata.create_all` by default (fine for development). For production schema versioning:
+
+```bash
+cd backend
+
+# After changing a SQLAlchemy model
+alembic revision --autogenerate -m "add tags column to documents"
+alembic upgrade head
+
+# Or set USE_ALEMBIC=true in .env to run migrations on startup
+```
+
+---
+
+## 🐛 Debugging tips
+
+**Backend 500 on `/api/query/`**
+→ Check `docker logs enterprise-knowledge-assistant-backend-1`
+→ Usually a missing API key or model download permission issue
+
+**`PermissionError at /nonexistent` in logs**
+→ HuggingFace cache path issue — ensure `HF_HOME=/app/data/hf_cache` is set in Dockerfile ENV
+
+**Frontend shows "Login failed"**
+→ Backend container crashed — check logs, usually a bcrypt or DB connection issue
+
+**`passlib` errors**
+→ We removed passlib — use `bcrypt` directly. See `auth_service.py`.
+
+**ChromaDB `vector_store: disconnected` in health check**
+→ Normal on fresh start — ChromaDB initializes lazily on first document upload
+
+---
+
+## 📦 Dependency philosophy
+
+- Pin exact versions in `requirements.txt` — no `>=` ranges
+- Prefer well-maintained packages with recent releases
+- ML packages: use CPU-only torch (`torch==x.x.x+cpu`) to keep image size manageable
+- No `passlib` — it's unmaintained and caused bcrypt compatibility crashes
+- Frontend: keep `package-lock.json` committed and use `npm ci` (not `npm install`) in CI
