@@ -31,6 +31,7 @@ services:
     volumes:
       - ./backend/data/uploads:/app/data/uploads
       - ./backend/data/chroma_db:/app/data/chroma_db
+      - hf_cache:/app/data/hf_cache
     depends_on:
       db:
         condition: service_healthy
@@ -53,3 +54,4 @@ services:
 
 volumes:
   postgres_data:
+  hf_cache:
