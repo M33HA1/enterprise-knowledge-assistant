@@ -44,7 +44,8 @@ EKA:  According to the Employee Handbook v3.2 (HR dept, p.4):
 | 🔑 **Google OAuth + JWT** | Sign in with your company Google account |
 | 📊 **Confidence scores** | Know when to trust the answer vs. escalate to a human |
 | 🕐 **Full query history** | Audit trail of every question asked |
-| 🐳 **One-command deploy** | `docker-compose up` and you're live |
+| 🔄 **Auto token refresh** | Sessions stay alive silently — no mid-session logouts |
+| 🐳 **One-command deploy** | `docker-compose up` starts db + backend + frontend |
 
 ---
 
@@ -119,7 +120,9 @@ SECRET_KEY=<run: python -c "import secrets; print(secrets.token_hex(32))">
 docker-compose up --build
 ```
 
-> ☕ First build takes ~5 minutes (downloads ML models). Subsequent starts are instant.
+> ☕ First build takes ~10 minutes (downloads ML models + packages). Subsequent starts are under 30 seconds.
+
+> 💡 The frontend is served by nginx on port 5173 — no separate `npm run dev` needed.
 
 ### Step 3 — Open the app
 
@@ -199,6 +202,10 @@ CHUNK_SIZE=500               # characters per document chunk
 CHUNK_OVERLAP=50             # overlap between chunks
 TOP_K_RESULTS=5              # chunks retrieved per query
 CONFIDENCE_THRESHOLD=0.3     # below this → escalation flag
+
+# ── Session ───────────────────────────────────────────────────
+ACCESS_TOKEN_EXPIRE_MINUTES=480   # 8 hours (default)
+REFRESH_TOKEN_EXPIRE_DAYS=30      # 30 days (default)
 ```
 
 </details>
@@ -216,8 +223,8 @@ enterprise-knowledge-assistant/
 │
 ├── backend/
 │   ├── app/
-│   │   ├── 🚪 main.py               # FastAPI app, startup, CORS
-│   │   ├── ⚙️  config.py             # All settings via Pydantic
+│   │   ├── 🚪 main.py               # FastAPI app, startup, CORS, config validation
+│   │   ├── ⚙️  config.py             # All settings via Pydantic (ConfigDict)
 │   │   ├── 🗄️  database.py           # Async SQLAlchemy engine
 │   │   │
 │   │   ├── api/                     # HTTP route handlers
@@ -235,19 +242,21 @@ enterprise-knowledge-assistant/
 │   │   │
 │   │   ├── models/                  # SQLAlchemy ORM (User, Document, etc.)
 │   │   ├── schemas/                 # Pydantic request/response models
-│   │   ├── services/                # auth_service (bcrypt, JWT)
+│   │   ├── services/                # auth_service (bcrypt direct, JWT)
 │   │   └── middleware/              # JWT auth + rate limiting deps
 │   │
 │   ├── tests/                       # pytest test suite
 │   ├── alembic/                     # DB migration scripts
-│   └── requirements.txt
+│   └── requirements.txt             # Pinned Python deps (CPU torch)
 │
 └── frontend/
-    ├── 🐳 Dockerfile                # Node build + nginx serve
-    ├── nginx.conf                   # SPA routing + /api proxy
+    ├── 🐳 Dockerfile                # Node build stage + nginx serve stage
+    ├── nginx.conf                   # SPA routing + /api proxy to backend
     └── src/
-        ├── App.tsx                  # Full app (sidebar layout, all views)
-        ├── api.ts                   # Axios client + token refresh
+        ├── App.tsx                  # Full app — sidebar layout, all views
+        │                            # (LoginPage, Sidebar, ChatTab, HistoryTab,
+        │                            #  DocumentsTab, AdminTab components)
+        ├── api.ts                   # Axios client + silent token refresh interceptor
         └── types.ts                 # TypeScript interfaces
 ```
 
@@ -354,49 +363,61 @@ cd backend
 python -m pytest tests/ -v
 
 # What's tested:
-# ✅ requirements.txt formatting (no merged lines)
-# ✅ Config values (valid model names, JWT settings)
-# ✅ Startup validation (placeholder credential warnings)
-# ✅ Document parsing and chunking
-# ✅ Embedding model (384-dim vectors)
-# ✅ Rate limiting logic
-# ⏭️  Vector store + RAG (skipped without LLM API key)
+# ✅ requirements.txt — no merged dependency lines, all auth packages present
+# ✅ config.py — valid Claude model name, JWT settings preserved
+# ✅ main.py — validate_config() warns on placeholder SECRET_KEY / GOOGLE_CLIENT_SECRET
+# ✅ frontend/.env — exists and contains VITE_API_BASE_URL
+# ✅ Document parsing and chunking (PDF/DOCX/TXT)
+# ✅ Embedding model — 384-dim vectors, batch encoding
+# ✅ Rate limiting — sliding window blocks after limit
+# ⏭️  Vector store + RAG — skipped unless LLM API key is set in env
 
 # Frontend
 cd frontend
-npm run lint    # ESLint
-npm run build   # TypeScript + Vite build
+npm run lint    # ESLint (no any, no set-state-in-effect)
+npm run build   # TypeScript check + Vite production build
 ```
 
 ---
 
 ## 🐳 Docker reference
 
+`docker-compose up --build` starts **all three services** — no separate frontend command needed.
+
 ```bash
-# Start everything (first time — builds images)
+# Start everything (first time — builds images, ~10 min)
 docker-compose up --build
 
 # Start in background
 docker-compose up -d
 
-# View backend logs
-docker-compose logs -f backend
+# View logs
+docker-compose logs -f backend    # backend logs
+docker-compose logs -f frontend   # nginx logs
 
-# Rebuild just the backend (after code changes)
+# Rebuild a single service after code changes
 docker-compose up --build backend
+docker-compose up --build frontend
 
-# Stop everything
+# Stop everything (data preserved)
 docker-compose down
 
 # Stop and wipe all data (fresh start)
 docker-compose down -v
 ```
 
+**Services:**
+| Service | Port | What it does |
+|---|---|---|
+| `db` | internal | PostgreSQL 16 |
+| `backend` | 8000 | FastAPI + RAG engine |
+| `frontend` | 5173 | React app served by nginx |
+
 **Volumes:**
 | Volume | What's stored |
 |---|---|
 | `postgres_data` | All database data (users, docs, history) |
-| `hf_cache` | Downloaded HuggingFace models (avoids re-download) |
+| `hf_cache` | Downloaded HuggingFace models (avoids re-download on restart) |
 | `./backend/data/uploads` | Uploaded document files |
 | `./backend/data/chroma_db` | Vector embeddings |
 
@@ -405,13 +426,15 @@ docker-compose down -v
 ## 🔒 Security notes
 
 - Passwords hashed with **bcrypt** (work factor 12)
-- JWT access tokens expire in **60 minutes**, refresh tokens in **7 days**
+- JWT access tokens expire in **8 hours** (full workday), refresh tokens in **30 days**
+- Token refresh is **automatic and silent** — the frontend retries failed requests with a new token without interrupting the user. If the refresh token also expires, the user is cleanly redirected to login.
 - Google OAuth uses **PKCE (S256)** + signed state tokens (CSRF protection)
 - Rate limiting: 10 logins/min, 30 queries/min, 20 uploads/min per user
 - Docker container runs as **non-root** `app` user
 - `SECRET_KEY` and `GOOGLE_CLIENT_SECRET` validated at startup — warnings logged if placeholders detected
+- HuggingFace model cache stored in a named Docker volume (`hf_cache`) — not exposed to the host
 
-> ⚠️ **Before going to production:** generate a real `SECRET_KEY`, set `DEBUG=false`, and use a managed PostgreSQL instance.
+> ⚠️ **Before going to production:** generate a real `SECRET_KEY`, set `DEBUG=false`, restrict `CORS` origins, and use a managed PostgreSQL instance.
 
 ---
 
