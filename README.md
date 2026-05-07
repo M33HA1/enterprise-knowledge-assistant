@@ -150,24 +150,23 @@ Password: admin123
 
 ### Choosing your Default LLM
 
-While users can now switch models dynamically from the Chat UI, you can set the default system `LLM_PROVIDER` in `.env`:
+We recommend **Google Gemini** as it offers a generous free tier (15 requests per minute) that is perfect for development.
+
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey) and create a free API key.
+2. Open your `.env` file, set `LLM_PROVIDER=gemini`, and paste your key in `GEMINI_API_KEY`.
+
+While users can switch models dynamically from the Chat UI, you can set the default system `LLM_PROVIDER` in `.env`. If you want to enable the other models (OpenAI, Claude, Grok) in the UI, you must add their respective paid API keys to the `.env` file as well:
 
 ```bash
-# Free tier — recommended for development
+# ─── Free Tier (Recommended) ───────────────
 LLM_PROVIDER=gemini
-GEMINI_API_KEY=your-key
+GEMINI_API_KEY=your-free-gemini-key
 
-# Best quality
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-
-# Alternative
-LLM_PROVIDER=claude
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Grok
-LLM_PROVIDER=grok
-GROK_API_KEY=xai-...
+# ─── Paid Alternatives ─────────────────────
+# Uncomment and add keys to enable them in the UI selector
+# OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-...
+# GROK_API_KEY=xai-...
 ```
 
 | Provider | Model | Cost | Best for |
