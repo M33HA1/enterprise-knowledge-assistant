@@ -11,6 +11,7 @@ sentence-transformers==3.3.1
 huggingface-hub==0.26.5
 chromadb==0.5.23
 torch==2.2.2+cpu
+numpy<2
 
 # ─── LLM Providers ───────────────────────────────────────────
 openai==1.78.1
