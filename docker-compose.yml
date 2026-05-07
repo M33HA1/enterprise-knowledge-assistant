@@ -34,7 +34,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # When running via Docker, the browser talks to nginx which proxies /api
+        # to the backend container — so the API URL is relative to the browser.
+        VITE_API_BASE_URL: /api
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:

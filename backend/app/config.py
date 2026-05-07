@@ -6,7 +6,7 @@ This is the single source of truth for configuration across the entire app.
 """
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import ConfigDict
 from typing import Optional
 from enum import Enum
 
@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     Priority: environment variable > .env file > default value.
     """
 
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
+
     # ─── Application ───────────────────────────────────────────────
     APP_NAME: str = "Enterprise Knowledge Assistant"
     APP_VERSION: str = "1.0.0"
@@ -41,7 +48,7 @@ class Settings(BaseSettings):
 
     # OpenAI
     OPENAI_API_KEY: Optional[str] = None
-    OPENAI_MODEL: str = "gpt-4o-mini"  # Cheapest capable model
+    OPENAI_MODEL: str = "gpt-4o-mini"
 
     # Anthropic Claude
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -53,7 +60,7 @@ class Settings(BaseSettings):
 
     # ─── Embedding Configuration ──────────────────────────────────
     EMBEDDING_PROVIDER: EmbeddingProvider = EmbeddingProvider.SENTENCE_TRANSFORMERS
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"  # Free, local, 384-dim
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION: int = 384
 
     # ─── ChromaDB Configuration ───────────────────────────────────
@@ -61,15 +68,15 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION_NAME: str = "knowledge_base"
 
     # ─── Document Processing ──────────────────────────────────────
-    CHUNK_SIZE: int = 500        # Characters per chunk
-    CHUNK_OVERLAP: int = 50      # Overlap between chunks
-    MAX_FILE_SIZE_MB: int = 50   # Max upload size
+    CHUNK_SIZE: int = 500
+    CHUNK_OVERLAP: int = 50
+    MAX_FILE_SIZE_MB: int = 50
     UPLOAD_DIR: str = "./data/uploads"
 
     # ─── RAG Configuration ────────────────────────────────────────
-    TOP_K_RESULTS: int = 5               # Number of chunks to retrieve
-    CONFIDENCE_THRESHOLD: float = 0.3    # Below this → flag for human review
-    MAX_CONTEXT_LENGTH: int = 4000       # Max chars of context sent to LLM
+    TOP_K_RESULTS: int = 5
+    CONFIDENCE_THRESHOLD: float = 0.3
+    MAX_CONTEXT_LENGTH: int = 4000
 
     # ─── Database ─────────────────────────────────────────────────
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/knowledge_assistant"
@@ -87,11 +94,6 @@ class Settings(BaseSettings):
 
     # ─── CORS ─────────────────────────────────────────────────────
     FRONTEND_URL: str = "http://localhost:5173"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
 
 
 # Singleton settings instance

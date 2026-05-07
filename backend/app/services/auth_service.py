@@ -2,10 +2,9 @@
 Authentication service: JWT tokens, password hashing, Google OAuth.
 
 Security decisions:
-  - bcrypt for password hashing (industry standard, slow = secure)
+  - bcrypt directly for password hashing (passlib removed — unmaintained)
   - JWT with HS256 (simple, sufficient for single-service apps)
   - Access tokens expire in 60 min, refresh tokens in 7 days
-  - OAuth users get a random password hash (can't use password login)
 """
 
 import logging
@@ -13,8 +12,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
+import bcrypt
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,22 +23,23 @@ from app.models import User, UserRole, Department
 
 logger = logging.getLogger(__name__)
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash a password using bcrypt."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """Verify a plain password against a bcrypt hash."""
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -70,13 +70,10 @@ async def register_user(
     role: UserRole = UserRole.EMPLOYEE,
 ) -> User:
     """Register a new user with password authentication."""
-    # Check if email already exists
     result = await db.execute(select(User).where(User.email == email))
-    existing = result.scalar_one_or_none()
-    if existing:
+    if result.scalar_one_or_none():
         raise ValueError(f"Email {email} is already registered")
 
-    # Validate department exists if provided
     if department_id:
         dept_result = await db.execute(select(Department).where(Department.id == department_id))
         if not dept_result.scalar_one_or_none():
@@ -108,7 +105,6 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> Opti
     if not user.is_active:
         return None
 
-    # Update last login
     user.last_login = datetime.now(timezone.utc)
     return user
 
@@ -128,7 +124,6 @@ async def get_or_create_oauth_user(
     user = result.scalar_one_or_none()
 
     if user:
-        # Update OAuth info and last login
         user.oauth_provider = provider
         user.oauth_id = oauth_id
         user.last_login = datetime.now(timezone.utc)
@@ -136,7 +131,6 @@ async def get_or_create_oauth_user(
             user.avatar_url = avatar_url
         return user
 
-    # Create new user
     user = User(
         email=email,
         full_name=full_name,
