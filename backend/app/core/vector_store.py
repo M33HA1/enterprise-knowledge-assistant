@@ -45,6 +45,7 @@ class VectorStore:
         # Initialize ChromaDB with persistent storage
         self._client = chromadb.PersistentClient(
             path=settings.CHROMA_PERSIST_DIR,
+            settings=ChromaSettings(anonymized_telemetry=False),
         )
 
         # Get or create the collection
