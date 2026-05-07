@@ -173,7 +173,7 @@ class GeminiClient(BaseLLMClient):
             if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                 raise ValueError(
                     "Gemini free tier quota exceeded for today. "
-                    "Switch to OpenAI or Claude by setting LLM_PROVIDER in your .env file, "
+                    "Switch to another model using the UI model selector, "
                     "or wait until tomorrow for the quota to reset."
                 )
             raise ValueError(f"Gemini API error: {e}")
@@ -199,7 +199,7 @@ class GeminiClient(BaseLLMClient):
             if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
                 raise ValueError(
                     "Gemini free tier quota exceeded for today. "
-                    "Switch to OpenAI or Claude by setting LLM_PROVIDER in your .env file, "
+                    "Switch to another model using the UI model selector, "
                     "or wait until tomorrow for the quota to reset."
                 )
             raise ValueError(f"Gemini API error: {e}")
