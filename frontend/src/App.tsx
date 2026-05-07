@@ -327,6 +327,7 @@ function Sidebar({ activeTab, setActiveTab, isAdmin, user, onLogout }: SidebarPr
 interface ChatTabProps {
   question: string;
   setQuestion: (v: string) => void;
+  lastQuestion: string;
   departmentFilter: string;
   setDepartmentFilter: (v: string) => void;
   departments: Department[];
@@ -340,6 +341,7 @@ interface ChatTabProps {
 function ChatTab({
   question,
   setQuestion,
+  lastQuestion,
   departmentFilter,
   setDepartmentFilter,
   departments,
@@ -360,7 +362,7 @@ function ChatTab({
         <div className="space-y-3">
           <div className="flex justify-end">
             <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-indigo-500 px-4 py-3 text-sm text-white shadow-lg shadow-indigo-500/20">
-              <p className="font-medium">Your question</p>
+              <p>{lastQuestion}</p>
             </div>
           </div>
           <div className="flex justify-start">
@@ -827,6 +829,7 @@ function App() {
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
   const [question, setQuestion] = useState("");
+  const [lastQuestion, setLastQuestion] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [answer, setAnswer] = useState<QueryResponse | null>(null);
   const [history, setHistory] = useState<QueryHistoryItem[]>([]);
@@ -959,11 +962,13 @@ function App() {
     if (!question.trim()) return;
     setLoading(true);
     setError("");
+    const asked = question.trim();
     try {
       const res = await api.post<QueryResponse>("/query/", {
-        question,
+        question: asked,
         department_filter: departmentFilter || undefined,
       });
+      setLastQuestion(asked);
       setAnswer(res.data);
       setQuestion("");
       await loadHistory();
@@ -1083,6 +1088,7 @@ function App() {
             <ChatTab
               question={question}
               setQuestion={setQuestion}
+              lastQuestion={lastQuestion}
               departmentFilter={departmentFilter}
               setDepartmentFilter={setDepartmentFilter}
               departments={departments}

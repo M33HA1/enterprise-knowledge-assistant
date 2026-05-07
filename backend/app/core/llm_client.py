@@ -169,9 +169,15 @@ class GeminiClient(BaseLLMClient):
                 config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=1500),
             )
         except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                raise ValueError(
+                    "Gemini free tier quota exceeded for today. "
+                    "Switch to OpenAI or Claude by setting LLM_PROVIDER in your .env file, "
+                    "or wait until tomorrow for the quota to reset."
+                )
             raise ValueError(f"Gemini API error: {e}")
         c = r.text
-        # Gemini doesn't expose exact token counts in all responses; estimate
         tokens = getattr(r, 'usage_metadata', None)
         total_tokens = 0
         if tokens:
@@ -189,6 +195,13 @@ class GeminiClient(BaseLLMClient):
                 config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=1500),
             )
         except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                raise ValueError(
+                    "Gemini free tier quota exceeded for today. "
+                    "Switch to OpenAI or Claude by setting LLM_PROVIDER in your .env file, "
+                    "or wait until tomorrow for the quota to reset."
+                )
             raise ValueError(f"Gemini API error: {e}")
         c = r.text
         tokens = getattr(r, 'usage_metadata', None)
