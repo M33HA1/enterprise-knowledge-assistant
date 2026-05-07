@@ -98,8 +98,11 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> Opti
     )
     user = result.scalar_one_or_none()
 
-    if not user or not user.hashed_password:
+    if not user:
         return None
+    if not user.hashed_password:
+        # OAuth-only account — cannot use password login
+        raise ValueError("This account uses Google sign-in. Please use the 'Continue with Google' button.")
     if not verify_password(password, user.hashed_password):
         return None
     if not user.is_active:
@@ -131,13 +134,19 @@ async def get_or_create_oauth_user(
             user.avatar_url = avatar_url
         return user
 
+    # Create new user — first OAuth user gets super_admin, rest get employee
+    from sqlalchemy import func
+    user_count_result = await db.execute(select(func.count()).select_from(User))
+    user_count = user_count_result.scalar()
+    role = UserRole.SUPER_ADMIN if user_count == 0 else UserRole.EMPLOYEE
+
     user = User(
         email=email,
         full_name=full_name,
         oauth_provider=provider,
         oauth_id=oauth_id,
         avatar_url=avatar_url,
-        role=UserRole.EMPLOYEE,
+        role=role,
         last_login=datetime.now(timezone.utc),
     )
     db.add(user)

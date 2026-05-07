@@ -124,7 +124,14 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """Login with email and password."""
-    user = await authenticate_user(db, req.email, req.password)
+    try:
+        user = await authenticate_user(db, req.email, req.password)
+    except ValueError as e:
+        # OAuth-only account trying to use password login
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
