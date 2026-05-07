@@ -890,10 +890,18 @@ function App() {
     try {
       const me = await api.get<User>("/auth/me");
       setUser(me.data);
-      await Promise.all([loadHistory(), loadDocuments(), loadDepartments()]);
       setError("");
     } catch {
+      // Only logout if /auth/me fails (invalid/expired token)
       logout();
+      return;
+    }
+    // Load data separately — errors here should NOT log the user out
+    try {
+      await Promise.all([loadHistory(), loadDocuments(), loadDepartments()]);
+    } catch {
+      // Non-critical: data failed to load but user is still authenticated
+      // Will retry on next interaction
     }
   }
 
@@ -958,18 +966,30 @@ function App() {
   }
 
   async function loadHistory() {
-    const res = await api.get("/query/history?page=1&page_size=20");
-    setHistory(res.data.queries || []);
+    try {
+      const res = await api.get("/query/history?page=1&page_size=20");
+      setHistory(res.data.queries || []);
+    } catch {
+      // Non-critical — leave existing state
+    }
   }
 
   async function loadDocuments() {
-    const res = await api.get("/documents?page=1&page_size=50");
-    setDocuments(res.data.documents || []);
+    try {
+      const res = await api.get("/documents?page=1&page_size=50");
+      setDocuments(res.data.documents || []);
+    } catch {
+      // Non-critical — leave existing state
+    }
   }
 
   async function loadDepartments() {
-    const res = await api.get<Department[]>("/admin/departments");
-    setDepartments(res.data || []);
+    try {
+      const res = await api.get<Department[]>("/admin/departments");
+      setDepartments(res.data || []);
+    } catch {
+      // Non-critical — leave existing state
+    }
   }
 
   async function uploadDocument(e: FormEvent) {
