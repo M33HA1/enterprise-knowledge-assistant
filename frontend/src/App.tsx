@@ -22,6 +22,8 @@ import {
   CheckCircle2,
   Users,
   Layers,
+  Trash2,
+  ChevronDown,
 } from "lucide-react";
 
 type ApiError = { response?: { data?: { detail?: string } } };
@@ -559,6 +561,7 @@ interface DocumentsTabProps {
   uploadError: string;
   uploadSuccess: string;
   onUpload: (e: FormEvent) => void;
+  onDelete: (id: string) => void;
 }
 
 function DocumentsTab({
@@ -575,6 +578,7 @@ function DocumentsTab({
   uploadError,
   uploadSuccess,
   onUpload,
+  onDelete,
 }: DocumentsTabProps) {
   return (
     <div className="space-y-6">
@@ -673,6 +677,15 @@ function DocumentsTab({
                   <p className="truncate text-sm font-semibold text-slate-100">{doc.title}</p>
                   <p className="mt-0.5 truncate text-xs text-slate-600">{doc.filename}</p>
                 </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => onDelete(doc.id)}
+                    className="shrink-0 rounded-md p-1.5 text-slate-500 transition-all duration-150 hover:bg-red-500/10 hover:text-red-400"
+                    title="Delete document"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {doc.department_name && (
@@ -709,6 +722,7 @@ interface AdminTabProps {
   uploadError: string;
   uploadSuccess: string;
   onUpload: (e: FormEvent) => void;
+  onDelete: (id: string) => void;
 }
 
 function AdminTab({
@@ -724,7 +738,10 @@ function AdminTab({
   uploadError,
   uploadSuccess,
   onUpload,
+  onDelete,
 }: AdminTabProps) {
+  const [expandedDeptId, setExpandedDeptId] = useState<string | null>(null);
+
   return (
     <div className="space-y-5">
       <div>
@@ -744,12 +761,16 @@ function AdminTab({
           ) : (
             departments.map((dept) => {
               const deptDocs = documents.filter((d) => d.department_name === dept.name);
+              const isExpanded = expandedDeptId === dept.id;
               return (
                 <div
                   key={dept.id}
-                  className="rounded-xl border border-[#1e1e2e] bg-[#111118] p-4 transition-all duration-150 hover:border-slate-700"
+                  className="rounded-xl border border-[#1e1e2e] bg-[#111118] transition-all duration-150 hover:border-slate-700"
                 >
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex cursor-pointer items-center gap-3 p-4"
+                    onClick={() => setExpandedDeptId(isExpanded ? null : dept.id)}
+                  >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
                       <CheckCircle2 className="h-4 w-4" />
                     </span>
@@ -759,8 +780,9 @@ function AdminTab({
                         <p className="mt-0.5 truncate text-xs text-slate-600">{dept.description}</p>
                       )}
                     </div>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   </div>
-                  <div className="mt-3 flex gap-3">
+                  <div className="flex gap-3 px-4 pb-4">
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <FileText className="h-3 w-3" />
                       {deptDocs.length} docs
@@ -770,6 +792,36 @@ function AdminTab({
                       {deptDocs.reduce((sum, d) => sum + d.chunk_count, 0)} chunks
                     </span>
                   </div>
+                  {isExpanded && (
+                    <div className="border-t border-[#1e1e2e] p-4">
+                      {deptDocs.length === 0 ? (
+                        <p className="text-center text-xs text-slate-500">No documents</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {deptDocs.map((doc) => (
+                            <div key={doc.id} className="flex items-center justify-between gap-3 rounded-lg border border-[#1e1e2e] bg-[#0a0a0f] p-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <FileTypeIcon type={doc.file_type} />
+                                <div className="min-w-0">
+                                  <p className="truncate text-xs font-semibold text-slate-200">{doc.title}</p>
+                                  <p className="truncate text-[10px] text-slate-500">{doc.filename}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDelete(doc.id);
+                                }}
+                                className="shrink-0 rounded-md p-1.5 text-slate-500 transition-all duration-150 hover:bg-red-500/10 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -1076,6 +1128,16 @@ function App() {
     }
   }
 
+  async function deleteDocument(docId: string) {
+    if (!window.confirm("Are you sure you want to delete this document?")) return;
+    try {
+      await api.delete(`/documents/${docId}`);
+      await loadDocuments();
+    } catch (err: unknown) {
+      alert(apiErrMsg(err, "Failed to delete document"));
+    }
+  }
+
   // Unauthenticated: show login page
   if (!user) {
     return (
@@ -1104,6 +1166,7 @@ function App() {
     uploadError,
     uploadSuccess,
     onUpload: uploadDocument,
+    onDelete: deleteDocument,
   };
 
   return (
