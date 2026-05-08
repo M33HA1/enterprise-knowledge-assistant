@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { FormEvent } from "react";
 import { api } from "./api";
@@ -884,6 +884,8 @@ function App() {
   // _tabs is used to ensure admin tab is only accessible when isAdmin
   void _tabs;
 
+  const isSubmitting = useRef(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthCode = params.get("oauth_code");
@@ -988,7 +990,9 @@ function App() {
 
   async function askQuestion(e: FormEvent) {
     e.preventDefault();
-    if (!question.trim()) return;
+    if (!question.trim() || isSubmitting.current) return;
+    
+    isSubmitting.current = true;
     setLoading(true);
     setError("");
     const asked = question.trim();
@@ -1005,6 +1009,7 @@ function App() {
     } catch (err: unknown) {
       setError(apiErrMsg(err, "Query failed"));
     } finally {
+      isSubmitting.current = false;
       setLoading(false);
     }
   }
