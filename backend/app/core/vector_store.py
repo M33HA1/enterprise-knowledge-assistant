@@ -119,12 +119,15 @@ class VectorStore:
             where_filter = {"department": {"$in": departments}}
 
         # Query ChromaDB
-        results = self._collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
+        kwargs = {
+            "query_embeddings": [query_embedding],
+            "n_results": top_k,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if where_filter is not None:
+            kwargs["where"] = where_filter
+
+        results = self._collection.query(**kwargs)
 
         # Format results
         formatted = []

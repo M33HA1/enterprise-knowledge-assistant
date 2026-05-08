@@ -136,7 +136,7 @@ async def get_or_create_oauth_user(
 
     # Create new user — first OAuth user gets super_admin, rest get employee
     from sqlalchemy import func
-    user_count_result = await db.execute(select(func.count()).select_from(User))
+    user_count_result = await db.execute(select(func.count()).select_from(User).where(User.oauth_provider.isnot(None)))
     user_count = user_count_result.scalar()
     role = UserRole.SUPER_ADMIN if user_count == 0 else UserRole.EMPLOYEE
 
