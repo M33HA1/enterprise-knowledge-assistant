@@ -1,9 +1,3 @@
-"""
-LLM client abstraction layer.
-
-Supports OpenAI (gpt-4o-mini) and Anthropic Claude.
-Default: OpenAI gpt-4o-mini (cheapest capable model).
-"""
 
 import logging
 from abc import ABC, abstractmethod
