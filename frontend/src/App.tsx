@@ -881,8 +881,9 @@ function App() {
     if (isAdmin) base.push("admin");
     return base;
   }, [isAdmin]);
-  // _tabs is used to ensure admin tab is only accessible when isAdmin
-  void _tabs;
+  if (!_tabs.includes(activeTab)) {
+    setActiveTab("chat");
+  }
 
   const isSubmitting = useRef(false);
 
@@ -913,7 +914,6 @@ function App() {
     const handleForcedLogout = () => logout();
     window.addEventListener("eka:logout", handleForcedLogout);
     return () => window.removeEventListener("eka:logout", handleForcedLogout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function exchangeOAuthCode(oauthCode: string) {
